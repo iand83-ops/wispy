@@ -1,6 +1,6 @@
 package fr.nicolas.wispy.panels.components.menu;
 
-import fr.nicolas.wispy.utils.Assets;
+import fr.nicolas.wispy.game.utils.Assets;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -8,10 +8,7 @@ import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.Objects;
 
-import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
 public class WButton extends JPanel {

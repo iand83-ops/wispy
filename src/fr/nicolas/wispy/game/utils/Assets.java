@@ -1,4 +1,4 @@
-package fr.nicolas.wispy.utils;
+package fr.nicolas.wispy.game.utils;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;

@@ -3,7 +3,7 @@ package fr.nicolas.wispy.panels;
 import fr.nicolas.wispy.frames.MainFrame;
 import fr.nicolas.wispy.panels.components.menu.WButton;
 import fr.nicolas.wispy.panels.components.menu.WPanel;
-import fr.nicolas.wispy.utils.Assets;
+import fr.nicolas.wispy.game.utils.Assets;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;

@@ -5,8 +5,8 @@ import fr.nicolas.wispy.frames.MainFrame;
 import fr.nicolas.wispy.panels.components.game.Player;
 import fr.nicolas.wispy.panels.components.menu.EscapeMenu;
 import fr.nicolas.wispy.panels.components.menu.WPanel;
-import fr.nicolas.wispy.panels.functions.MapManager;
-import fr.nicolas.wispy.utils.Assets;
+import fr.nicolas.wispy.game.world.WorldManager;
+import fr.nicolas.wispy.game.utils.Assets;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -25,7 +25,7 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 	private int playerWidth;
 	private int playerHeight;
 
-	private final MapManager mapManager;
+	private final WorldManager mapManager;
 	private final BufferedImage sky;
 	private final Player player;
 	private Point mouseLocation;
@@ -40,18 +40,13 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 		this.addMouseMotionListener(this);
 		this.setFocusable(true);
 
-		// Chargement des textures
-		for (int i = 0; i < BlockID.values().length; i++) {
-			loadBlockImage(BlockID.values()[i]);
-		}
-
 		sky = Assets.get("map/sky");
 		player = new Player(Assets.get("player/idle"),
 				Assets.get("player/walk_1"),
 				Assets.get("player/walk_2"), this);
 
 		// Création/Chargement nouveau monde
-		mapManager = new MapManager(player);
+		mapManager = new WorldManager(player);
 		mapManager.loadWorld("TestWorld");
 
 		// Lancement des threads
@@ -59,25 +54,6 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 		mapManager.newLoadingMapThread(runner, this); // Charger et décharger les maps
 
 		setFrameBounds(new Rectangle(MainFrame.INIT_WIDTH, MainFrame.INIT_HEIGHT));
-	}
-
-	// Gestion blocs (textures)
-	public enum BlockID {
-		STONE, DIRT, GRASS, SAND;
-
-		private BufferedImage img = null;
-
-		public void setImg(BufferedImage img) {
-			this.img = img;
-		}
-
-		public BufferedImage getImg() {
-			return img;
-		}
-	}
-
-	private void loadBlockImage(BlockID blockID) {
-		blockID.setImg(Assets.get("blocks/" + blockID.toString().toLowerCase()));
 	}
 
 	// Refresh / Paint methods
@@ -117,7 +93,9 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 			new EscapeMenu().paint(g, this.getHeight());
 		}
 
-		mapManager.drawSelections(g, this.getWidth(), this.getHeight(), newBlockWidth, newBlockHeight, mouseLocation);
+		if (mouseLocation != null) {
+			mapManager.drawSelections(g, this.getWidth(), this.getHeight(), newBlockWidth, newBlockHeight, mouseLocation);
+		}
 	}
 
 	public void setFrameBounds(Rectangle frameBounds) {
@@ -142,7 +120,7 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 		return player;
 	}
 
-	public MapManager getMapManager() {
+	public WorldManager getMapManager() {
 		return mapManager;
 	}
 

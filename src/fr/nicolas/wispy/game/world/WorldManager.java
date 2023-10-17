@@ -1,9 +1,10 @@
-package fr.nicolas.wispy.panels.functions;
+package fr.nicolas.wispy.game.world;
 
 import fr.nicolas.wispy.Runner;
+import fr.nicolas.wispy.game.blocks.Block;
+import fr.nicolas.wispy.game.blocks.BlockRegistry;
+import fr.nicolas.wispy.game.blocks.Blocks;
 import fr.nicolas.wispy.panels.GamePanel;
-import fr.nicolas.wispy.panels.GamePanel.BlockID;
-import fr.nicolas.wispy.panels.components.game.Block;
 import fr.nicolas.wispy.panels.components.game.Player;
 
 import java.awt.*;
@@ -13,15 +14,15 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 
-public class MapManager {
+public class WorldManager {
 
 	private int mapBLeftNum = -1;
 	private int mapBCenterNum = 0;
 	private int mapBRightNum = 1;
 
-	public Block[][] mapBLeft;
-	public Block[][] mapBRight;
-	public Block[][] mapBCenter;
+	public int[][] mapBLeft;
+	public int[][] mapBRight;
+	public int[][] mapBCenter;
 
 	private String worldName;
 	private File worldDir;
@@ -39,8 +40,11 @@ public class MapManager {
 	private boolean hasFoundRightCollision = false;
 	private boolean hasFoundLeftCollision = false;
 
-	public MapManager(Player player) {
+	private BlockRegistry blockRegistry;
+
+	public WorldManager(Player player) {
 		this.player = player;
+		this.blockRegistry = new BlockRegistry();
 	}
 
 	public void loadWorld(String worldName) {
@@ -48,56 +52,28 @@ public class MapManager {
 
 		this.worldDir = new File("Wispy/worlds/" + worldName);
 
-		if (!this.worldDir.isFile()) {
+		if (!this.worldDir.isDirectory()) {
 			this.worldDir.mkdirs();
-
-			// Génération des maps
-			int mapSize = 2; // Nombre de maps crées à gauche et à droite des 3 maps centrales
-							 // Ainsi: nombre total de map = mapSize*2+3
-
-			mapBLeftNum = -1;
-			mapBLeft = generateMap(mapBLeftNum);
-			saveMap(this.worldDir, mapBLeft, mapBLeftNum);
-
-			mapBCenterNum = 0;
-			mapBCenter = generateMap(mapBCenterNum);
-			saveMap(this.worldDir, mapBCenter, mapBCenterNum);
-
-			mapBRightNum = 1;
-			mapBRight = generateMap(mapBRightNum);
-			saveMap(this.worldDir, mapBRight, mapBRightNum);
-
-			for (int i = -2; i >= -mapSize - 1; i--) {
-				saveMap(this.worldDir, generateMap(i), i);
-			}
-
-			for (int i = 2; i <= mapSize + 1; i++) {
-				saveMap(this.worldDir, generateMap(i), i);
-			}
-		} else {
-			// Chargement des maps (pour l'instant les 3 principales mais TODO: système pour
-			// charger les coords du joueurs pour charger les 3 maps par rapport à sa
-			// position)
-
-			mapBLeftNum = -1;
-			mapBLeft = loadMap(this.worldDir, mapBLeftNum);
-
-			mapBCenterNum = 0;
-			mapBCenter = loadMap(this.worldDir, mapBCenterNum);
-
-			mapBRightNum = 1;
-			mapBRight = loadMap(this.worldDir, mapBRightNum);
 		}
 
+		this.mapBLeftNum = -1;
+		this.mapBLeft = loadChunk(this.mapBLeftNum);
+
+		this.mapBCenterNum = 0;
+		this.mapBCenter = loadChunk(this.mapBCenterNum);
+
+		this.mapBRightNum = 1;
+		this.mapBRight = loadChunk(this.mapBRightNum);
+
 		// Player spawnpoint
-		player.x = 0;
-		player.y = getPlayerSpawnY();
+		this.player.x = 0;
+		this.player.y = getPlayerSpawnY();
 	}
 
 	public int getPlayerSpawnY() {
 		// TODO: Système à refaire
 		int y = 0;
-		while (mapBCenter[0][y] == null) {
+		while (mapBCenter[0][y] == Blocks.AIR.getId()) {
 			y++;
 		}
 		return y;
@@ -111,36 +87,30 @@ public class MapManager {
                     newX = ((mapBRight.length / 2 + mapBRightNum * mapBRight.length) * gamePanel.getNewBlockWidth())
                             - (int) (player.getX() * gamePanel.getNewBlockWidth() / GamePanel.BLOCK_SIZE);
                     if (newX >= 0 && newX <= gamePanel.getWidth()) {
-                        MapManager.this.saveMap(MapManager.this.worldDir, mapBLeft, mapBLeftNum);
+                        saveChunk(mapBLeft, mapBLeftNum);
+
                         mapBLeft = mapBCenter;
                         mapBLeftNum = mapBCenterNum;
                         mapBCenter = mapBRight;
                         mapBCenterNum = mapBRightNum;
 
-                        if (new File("Wispy/worlds/" + worldName + "/" + (mapBRightNum + 1) + ".wmap").exists()) {
-                            mapBRightNum++;
-                            mapBRight = MapManager.this.loadMap(MapManager.this.worldDir, mapBRightNum);
-                        } else {
-                            mapBRight = null;
-                        }
+						mapBRightNum++;
+						mapBRight = loadChunk(mapBRightNum);
                     }
                 }
                 if (mapBLeft != null) {
                     newX = ((mapBLeft.length / 2 + mapBLeftNum * mapBLeft.length) * gamePanel.getNewBlockWidth())
                             - (int) (player.getX() * gamePanel.getNewBlockWidth() / GamePanel.BLOCK_SIZE);
                     if (newX >= 0 && newX <= gamePanel.getWidth()) {
-                        MapManager.this.saveMap(MapManager.this.worldDir, mapBRight, mapBRightNum);
+                        saveChunk(mapBRight, mapBRightNum);
+
                         mapBRight = mapBCenter;
                         mapBRightNum = mapBCenterNum;
                         mapBCenter = mapBLeft;
                         mapBCenterNum = mapBLeftNum;
 
-                        if (new File("Wispy/worlds/" + worldName + "/" + (mapBLeftNum - 1) + ".wmap").exists()) {
-                            mapBLeftNum--;
-                            mapBLeft = MapManager.this.loadMap(MapManager.this.worldDir, mapBLeftNum);
-                        } else {
-                            mapBLeft = null;
-                        }
+						mapBLeftNum--;
+						mapBLeft = loadChunk(mapBLeftNum);
                     }
                 }
 
@@ -155,9 +125,9 @@ public class MapManager {
 		loadNextMap.start();
 	}
 
-	private void saveMap(File worldDir, Block[][] mapToSave, int num) {
+	private void saveChunk(int[][] mapToSave, int num) {
 		try {
-			ObjectOutputStream objectOutputS = new ObjectOutputStream(Files.newOutputStream(new File(worldDir, num + ".wmap").toPath()));
+			ObjectOutputStream objectOutputS = new ObjectOutputStream(Files.newOutputStream(new File(this.worldDir, num + ".chunk").toPath()));
 			objectOutputS.writeObject(mapToSave);
 			objectOutputS.close();
 		} catch (IOException e) {
@@ -165,13 +135,25 @@ public class MapManager {
 		}
 	}
 
-	private Block[][] loadMap(File worldDir, int num) {
-		Block[][] loadedMap = null;
+	private int[][] loadChunk(int index) {
+		File chunkFile = new File(worldDir, index + ".chunk");
+
+		if (chunkFile.isFile()) {
+			return loadChunkFromFile(chunkFile);
+		}
+
+		int[][] chunk = generateChunk(index);
+		saveChunk(chunk, index);
+		return chunk;
+	}
+
+	private int[][] loadChunkFromFile(File chunkFile) {
+		int[][] loadedMap = null;
 		try {
-			ObjectInputStream objectInputS = new ObjectInputStream(Files.newInputStream(new File(worldDir, num + ".wmap").toPath()));
+			ObjectInputStream objectInputS = new ObjectInputStream(Files.newInputStream(chunkFile.toPath()));
 
 			try {
-				loadedMap = (Block[][]) objectInputS.readObject();
+				loadedMap = (int[][]) objectInputS.readObject();
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
@@ -183,8 +165,8 @@ public class MapManager {
 		return loadedMap;
 	}
 
-	private Block[][] generateMap(int num) {
-		Block[][] mapToGenerate = new Block[82][100];
+	private int[][] generateChunk(int index) {
+		int[][] mapToGenerate = new int[82][100];
 
 		int newY = 0;
 
@@ -245,13 +227,13 @@ public class MapManager {
 			}
 
 			lastY = newY;
-			mapToGenerate[x][newY] = new Block(BlockID.GRASS);
+			mapToGenerate[x][newY] = Blocks.GRASS.getId();
 
 			for (int y = newY + 1; y < mapToGenerate[0].length; y++) {
 				if (y < newY + 3) {
-					mapToGenerate[x][y] = new Block(BlockID.DIRT);
+					mapToGenerate[x][y] = Blocks.DIRT.getId();
 				} else {
-					mapToGenerate[x][y] = new Block(BlockID.STONE);
+					mapToGenerate[x][y] = Blocks.STONE.getId();
 				}
 			}
 		}
@@ -292,7 +274,7 @@ public class MapManager {
 	}
 
 	// TODO: Fonction à réorganiser
-	private void computeCollision(Block[][] mapB, int times, int width,
+	private void computeCollision(int[][] mapB, int times, int width,
 								  int height, int newBlockWidth, int newBlockHeight, GamePanel gamePanel, int playerWidth, int playerHeight,
 								  int playerX, int playerY) {
 
@@ -303,7 +285,7 @@ public class MapManager {
 					for (int y = 0; y < mapB[0].length; y++) {
 						int newY = (y * newBlockHeight) - (int) (player.getY() / GamePanel.BLOCK_SIZE * newBlockHeight);
 						if (newY >= -350 && newY <= height + 350) {
-							if (mapB[x][y] != null) {
+							if (mapB[x][y] != Blocks.AIR.getId()) {
 								// Test des collisions avec le joueur
 								if (!hasFoundFallingCollision) {
 									if (new Rectangle(newX, newY, newBlockWidth, newBlockHeight)
@@ -373,7 +355,7 @@ public class MapManager {
 		}
 	}
 
-	private void drawMap(Graphics g, Block[][] mapB, int times, int width, int height, int newBlockWidth, int newBlockHeight) {
+	private void drawMap(Graphics g, int[][] mapB, int times, int width, int height, int newBlockWidth, int newBlockHeight) {
 		if (mapB != null) {
 			for (int x = 0; x < mapB.length; x++) {
 				int newX = ((x + times * mapB.length) * newBlockWidth) - (int) (player.getX() / GamePanel.BLOCK_SIZE * newBlockWidth);
@@ -381,8 +363,9 @@ public class MapManager {
 					for (int y = 0; y < mapB[0].length; y++) {
 						int newY = (y * newBlockHeight) - (int) (player.getY() / GamePanel.BLOCK_SIZE * newBlockHeight);
 						if (newY >= -350 && newY <= height + 350) {
-							if (mapB[x][y] != null) {
-								mapB[x][y].paint(g, newX, newY, newBlockWidth, newBlockHeight);
+							if (mapB[x][y] != Blocks.AIR.getId()) {
+								Block block = this.blockRegistry.getBlock(mapB[x][y]);
+								g.drawImage(block.getTexture(), newX, newY, newBlockWidth, newBlockHeight, null);
 							}
 						} else if (newY > 0) {
 							break;
@@ -395,7 +378,7 @@ public class MapManager {
 		}
 	}
 
-	public void drawSelection(Graphics g, Block[][] mapB, int times, int width,
+	public void drawSelection(Graphics g, int[][] mapB, int times, int width,
 							  int height, int newBlockWidth, int newBlockHeight, Point mouseLocation) {
 		if (mapB != null) {
 			for (int x = 0; x < mapB.length; x++) {
@@ -404,7 +387,7 @@ public class MapManager {
 					for (int y = 0; y < mapB[0].length; y++) {
 						int newY = (y * newBlockHeight) - (int) (player.getY() / GamePanel.BLOCK_SIZE * newBlockHeight);
 						if (newY >= -350 && newY <= height + 350) {
-							if (mapB[x][y] != null) {
+							if (mapB[x][y] != Blocks.AIR.getId()) {
 								// Block selection
 								if (new Rectangle(newX, newY, newBlockWidth, newBlockHeight)
 										.contains(mouseLocation)) {
