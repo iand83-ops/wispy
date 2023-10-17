@@ -1,6 +1,6 @@
 package fr.nicolas.wispy;
 
-import fr.nicolas.wispy.Panels.GamePanel;
+import fr.nicolas.wispy.panels.GamePanel;
 
 public class Runner implements Runnable {
 

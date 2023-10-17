@@ -1,4 +1,4 @@
-package fr.nicolas.wispy.Panels.Components.Menu;
+package fr.nicolas.wispy.panels.components.menu;
 
 import java.awt.Rectangle;
 

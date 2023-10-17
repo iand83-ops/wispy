@@ -1,4 +1,6 @@
-package fr.nicolas.wispy.Panels.Components.Menu;
+package fr.nicolas.wispy.panels.components.menu;
+
+import fr.nicolas.wispy.utils.Assets;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -7,6 +9,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.Objects;
 
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
@@ -30,16 +33,8 @@ public class WButton extends JPanel {
 	}
 
 	private void loadImages(String iconName) {
-		try {
-			icon = ImageIO.read(getClass().getResource("res/buttons/" + iconName + ".png"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		try {
-			iconHovered = ImageIO.read(getClass().getResource("res/buttons/" + iconName + "Hovered.png"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		icon = Assets.get("buttons/" + iconName);
+		iconHovered = Assets.get("buttons/" + iconName + "Hovered");
 	}
 
 	public boolean mouseClick(Point mouseLocation) {

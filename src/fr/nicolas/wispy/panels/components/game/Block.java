@@ -1,10 +1,10 @@
-package fr.nicolas.wispy.Panels.Components.Game;
+package fr.nicolas.wispy.panels.components.game;
 
 import java.awt.Graphics;
 import java.awt.Rectangle;
 
-import fr.nicolas.wispy.Panels.GamePanel;
-import fr.nicolas.wispy.Panels.GamePanel.BlockID;
+import fr.nicolas.wispy.panels.GamePanel;
+import fr.nicolas.wispy.panels.GamePanel.BlockID;
 
 public class Block extends Rectangle {
 

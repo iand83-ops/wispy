@@ -1,4 +1,4 @@
-package fr.nicolas.wispy.Panels;
+package fr.nicolas.wispy.panels;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -10,12 +10,14 @@ import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 
 import javax.imageio.ImageIO;
 
-import fr.nicolas.wispy.Frames.MainFrame;
-import fr.nicolas.wispy.Panels.Components.Menu.WButton;
-import fr.nicolas.wispy.Panels.Components.Menu.WPanel;
+import fr.nicolas.wispy.frames.MainFrame;
+import fr.nicolas.wispy.panels.components.menu.WButton;
+import fr.nicolas.wispy.panels.components.menu.WPanel;
+import fr.nicolas.wispy.utils.Assets;
 
 public class MenuPanel extends WPanel implements MouseListener, MouseMotionListener {
 
@@ -28,22 +30,14 @@ public class MenuPanel extends WPanel implements MouseListener, MouseMotionListe
 		super(frameBounds);
 		this.mainFrame = mainFrame;
 
-		// Création dossier config
+		// CrÃ©ation dossier config
 		if (!new File("Wispy").exists()) {
 			new File("Wispy/worlds").mkdirs();
 		}
 
 		// Chargement textures menu
-		try {
-			bg = ImageIO.read(getClass().getResource("Components/Menu/res/img/bg.png"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		try {
-			title = ImageIO.read(getClass().getResource("Components/Menu/res/img/title.png"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		bg = Assets.get("img/bg");
+		title = Assets.get("img/title");
 
 		this.addMouseListener(this);
 		this.addMouseMotionListener(this);

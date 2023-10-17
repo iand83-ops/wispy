@@ -1,4 +1,4 @@
-package fr.nicolas.wispy.Frames;
+package fr.nicolas.wispy.frames;
 
 import java.awt.Dimension;
 import java.awt.event.ComponentEvent;
@@ -6,9 +6,9 @@ import java.awt.event.ComponentListener;
 
 import javax.swing.JFrame;
 
-import fr.nicolas.wispy.Panels.GamePanel;
-import fr.nicolas.wispy.Panels.MenuPanel;
-import fr.nicolas.wispy.Panels.Components.Menu.WPanel;
+import fr.nicolas.wispy.panels.GamePanel;
+import fr.nicolas.wispy.panels.MenuPanel;
+import fr.nicolas.wispy.panels.components.menu.WPanel;
 
 public class MainFrame extends JFrame {
 

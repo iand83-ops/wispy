@@ -1,4 +1,4 @@
-package fr.nicolas.wispy.Panels.Fonctions;
+package fr.nicolas.wispy.panels.functions;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -12,11 +12,11 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import fr.nicolas.wispy.Panels.Components.Game.Block;
-import fr.nicolas.wispy.Panels.Components.Game.Player;
+import fr.nicolas.wispy.panels.components.game.Block;
+import fr.nicolas.wispy.panels.components.game.Player;
 import fr.nicolas.wispy.Runner;
-import fr.nicolas.wispy.Panels.GamePanel;
-import fr.nicolas.wispy.Panels.GamePanel.BlockID;
+import fr.nicolas.wispy.panels.GamePanel;
+import fr.nicolas.wispy.panels.GamePanel.BlockID;
 
 public class MapManager {
 
@@ -43,8 +43,8 @@ public class MapManager {
 		if (!new File("Wispy/worlds/" + worldName).exists()) {
 			new File("Wispy/worlds/" + worldName).mkdirs();
 
-			// Génération des maps
-			int mapSize = 2; // Nombre de maps crées à gauche et à droite des 3 maps centrales
+			// GÃ©nÃ©ration des maps
+			int mapSize = 2; // Nombre de maps crÃ©es Ã  gauche et Ã  droite des 3 maps centrales
 								// Ainsi: nombre total de map = mapSize*2+3
 
 			mapBLeftNum = -1;
@@ -68,8 +68,8 @@ public class MapManager {
 			}
 
 		} else {
-			// Chargement des maps (pour l'instant les 3 principales mais TODO: système pour
-			// charger les coords du joueurs pour charger les 3 maps par rapport à sa
+			// Chargement des maps (pour l'instant les 3 principales mais TODO: systÃ¨me pour
+			// charger les coords du joueurs pour charger les 3 maps par rapport Ã  sa
 			// position)
 
 			mapBLeftNum = -1;
@@ -89,7 +89,7 @@ public class MapManager {
 	}
 
 	public int getPlayerSpawnY() {
-		// TODO: Système à refaire
+		// TODO: SystÃ¨me Ã  refaire
 		int y = 0;
 		while (mapBCenter[0][y] == null) {
 			y++;
@@ -228,9 +228,9 @@ public class MapManager {
 		int newY = 0;
 
 		for (int x = 0; x < mapToGenerate.length; x++) {
-			// TODO: Algo de génération
-			// TODO: Actuellement: génération map par map au lieu de l'ensemble des maps
-			// d'un coup ... (problèmes si grottes, montagnes, bâtiments ...)
+			// TODO: Algo de gÃ©nÃ©ration
+			// TODO: Actuellement: gÃ©nÃ©ration map par map au lieu de l'ensemble des maps
+			// d'un coup ... (problÃ¨mes si grottes, montagnes, bÃ¢timents ...)
 
 			if (random(1, 2) == 1) {
 				if (state == 0) {
@@ -327,7 +327,7 @@ public class MapManager {
 		hasFoundLeftCollision = false;
 	}
 
-	// TODO: Fonction a réorganiser
+	// TODO: Fonction Ã  rÃ©organiser
 	private void refreshPaintMapDisplayedBlocks(Graphics g, RefreshPaintMap mode, Block[][] mapB, int times, int width,
 			int height, int newBlockWidth, int newBlockHeight, GamePanel gamePanel, int playerWidth, int playerHeight,
 			int playerX, int playerY, Point mouseLocation) {

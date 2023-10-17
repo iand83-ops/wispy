@@ -1,25 +1,17 @@
-package fr.nicolas.wispy.Panels;
-
-import java.awt.Graphics;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-
-import javax.imageio.ImageIO;
+package fr.nicolas.wispy.panels;
 
 import fr.nicolas.wispy.Runner;
-import fr.nicolas.wispy.Frames.MainFrame;
-import fr.nicolas.wispy.Panels.Components.Game.Player;
-import fr.nicolas.wispy.Panels.Components.Menu.EscapeMenu;
-import fr.nicolas.wispy.Panels.Components.Menu.WPanel;
-import fr.nicolas.wispy.Panels.Fonctions.MapManager;
-import fr.nicolas.wispy.Panels.Fonctions.MapManager.RefreshPaintMap;
+import fr.nicolas.wispy.frames.MainFrame;
+import fr.nicolas.wispy.panels.components.game.Player;
+import fr.nicolas.wispy.panels.components.menu.EscapeMenu;
+import fr.nicolas.wispy.panels.components.menu.WPanel;
+import fr.nicolas.wispy.panels.functions.MapManager;
+import fr.nicolas.wispy.panels.functions.MapManager.RefreshPaintMap;
+import fr.nicolas.wispy.utils.Assets;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.BufferedImage;
 
 public class GamePanel extends WPanel implements KeyListener, MouseListener, MouseMotionListener {
 
@@ -48,22 +40,18 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 			loadBlockImage(BlockID.values()[i]);
 		}
 
-		try {
-			sky = ImageIO.read(getClass().getResource("Components/Game/res/map/sky.png"));
-			player = new Player(ImageIO.read(getClass().getResource("Components/Game/res/player/p_stop.png")),
-					ImageIO.read(getClass().getResource("Components/Game/res/player/p_walk1.png")),
-					ImageIO.read(getClass().getResource("Components/Game/res/player/p_walk2.png")), this);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		sky = Assets.get("map/sky");
+		player = new Player(Assets.get("player/p_stop"),
+				Assets.get("player/p_walk1"),
+				Assets.get("player/p_walk2"), this);
 
-		// Création/Chargement nouveau monde
+		// CrÃ©ation/Chargement nouveau monde
 		mapManager = new MapManager(player);
 		mapManager.loadWorld("TestWorld");
 
 		// Lancement des threads
 		runner = new Runner(this); // Actualiser les blocs puis les textures
-		mapManager.newLoadingMapThread(runner, this); // Charger et décharger les maps
+		mapManager.newLoadingMapThread(runner, this); // Charger et dÃ©charger les maps
 
 		setFrameBounds(new Rectangle(MainFrame.INIT_WIDTH, MainFrame.INIT_HEIGHT));
 	}
@@ -84,12 +72,7 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 	}
 
 	private void loadBlockImage(BlockID blockID) {
-		try {
-			blockID.setImg(ImageIO.read(
-					getClass().getResource("Components/Game/res/blocks/" + blockID.toString().toLowerCase() + ".png")));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		blockID.setImg(Assets.get("blocks/" + blockID.toString().toLowerCase()));
 	}
 
 	// Refresh / Paint methods
@@ -118,7 +101,7 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 
 	public void paintComponent(Graphics g) {
 		g.drawImage(sky, 0, 0, this.getWidth(), this.getHeight(), null);
-		// Le paint des blocs intègre le test de collision avec le joueur
+		// Le paint des blocs intÃ©gre le test de collision avec le joueur
 		mapManager.refreshPaintAllDisplayedBlocks(g, RefreshPaintMap.PAINT, this.getWidth(), this.getHeight(),
 				newBlockWidth, newBlockHeight, 0, 0, 0, 0, this, null);
 		player.paint(g, playerX, playerY, playerWidth, playerHeight);

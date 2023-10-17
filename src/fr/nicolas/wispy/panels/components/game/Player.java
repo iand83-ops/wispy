@@ -1,11 +1,11 @@
-package fr.nicolas.wispy.Panels.Components.Game;
+package fr.nicolas.wispy.panels.components.game;
 
 import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 
-import fr.nicolas.wispy.Panels.GamePanel;
-import fr.nicolas.wispy.Panels.Fonctions.MapManager.RefreshPaintMap;
+import fr.nicolas.wispy.panels.GamePanel;
+import fr.nicolas.wispy.panels.functions.MapManager.RefreshPaintMap;
 
 public class Player extends Rectangle {
 
@@ -30,7 +30,7 @@ public class Player extends Rectangle {
 				gamePanel.getHeight(), gamePanel.getNewBlockWidth(), gamePanel.getNewBlockHeight(), playerWidth,
 				playerHeight, playerX, playerY, gamePanel, null);
 
-		// Déplacements
+		// DÃ©placements
 		if (isWalking) {
 			if (isToRight && canGoRight) {
 				walkNum++;
@@ -92,7 +92,7 @@ public class Player extends Rectangle {
 			isJumping = false;
 		}
 
-		// Gravité
+		// GravitÃ©
 		if (isFalling && !isJumping) {
 			for (int i = 0; i < 4; i++) {
 				if (isFalling) {
@@ -111,7 +111,7 @@ public class Player extends Rectangle {
 
 	public void paint(Graphics g, int x, int y, int width, int height) {
 		// TODO: iswalking inutilisable car toujours faux donc frame playerStopImg n'est
-		// pas affiché (toujours walk)
+		// pas affichÃ© (toujours walk)
 		if (isJumping) {
 			drawImg(g, playerWalk2Img, x, y, width, height);
 		} else if (isFalling || !isWalking || !canGoRight || !canGoLeft) {
