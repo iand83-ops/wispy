@@ -34,15 +34,11 @@ public class WButton extends JPanel {
 
 	private void loadImages(String iconName) {
 		icon = Assets.get("buttons/" + iconName);
-		iconHovered = Assets.get("buttons/" + iconName + "Hovered");
+		iconHovered = Assets.get("buttons/" + iconName + "_hover");
 	}
 
 	public boolean mouseClick(Point mouseLocation) {
-		if (button.contains(mouseLocation)) {
-			return true;
-		} else {
-			return false;
-		}
+        return button.contains(mouseLocation);
 	}
 
 	public boolean mouseClick(Point mouseLocation, boolean isRightClick) {

@@ -13,7 +13,8 @@ import fr.nicolas.wispy.panels.components.menu.WPanel;
 public class MainFrame extends JFrame {
 
 	private WPanel panel;
-	public static final int INIT_WIDTH = 1250, INIT_HEIGHT = 720;
+	public static final int INIT_WIDTH = 1250;
+	public static final int INIT_HEIGHT = 720;
 
 	public MainFrame() {
 		this.setTitle("Wispy");

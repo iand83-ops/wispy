@@ -6,7 +6,6 @@ import fr.nicolas.wispy.panels.components.game.Player;
 import fr.nicolas.wispy.panels.components.menu.EscapeMenu;
 import fr.nicolas.wispy.panels.components.menu.WPanel;
 import fr.nicolas.wispy.panels.functions.MapManager;
-import fr.nicolas.wispy.panels.functions.MapManager.RefreshPaintMap;
 import fr.nicolas.wispy.utils.Assets;
 
 import java.awt.*;
@@ -15,20 +14,26 @@ import java.awt.image.BufferedImage;
 
 public class GamePanel extends WPanel implements KeyListener, MouseListener, MouseMotionListener {
 
-	public static final int BLOCK_SIZE = 25, INIT_PLAYER_X = 605, INIT_PLAYER_Y = 315;
-	private int newBlockWidth = BLOCK_SIZE, newBlockHeight = BLOCK_SIZE, playerX, playerY, playerWidth, playerHeight;
-	private Runner runner;
-	private MapManager mapManager;
-	private BufferedImage sky;
-	private Player player;
+	public static final int BLOCK_SIZE = 25;
+	public static final int INIT_PLAYER_X = 605;
+	public static final int INIT_PLAYER_Y = 315;
+
+	private int newBlockWidth = BLOCK_SIZE;
+	private int newBlockHeight = BLOCK_SIZE;
+	private int playerX;
+	private int playerY;
+	private int playerWidth;
+	private int playerHeight;
+
+	private final MapManager mapManager;
+	private final BufferedImage sky;
+	private final Player player;
 	private Point mouseLocation;
 
 	private boolean keyDPressed = false, keyQPressed = false, keySpacePressed = false, isEscapeMenuOpen = false;
 
 	public GamePanel(Rectangle frameBounds, boolean isNewGame) {
 		super(frameBounds);
-		newBlockWidth = BLOCK_SIZE;
-		newBlockHeight = BLOCK_SIZE;
 
 		this.addKeyListener(this);
 		this.addMouseListener(this);
@@ -41,16 +46,16 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 		}
 
 		sky = Assets.get("map/sky");
-		player = new Player(Assets.get("player/p_stop"),
-				Assets.get("player/p_walk1"),
-				Assets.get("player/p_walk2"), this);
+		player = new Player(Assets.get("player/idle"),
+				Assets.get("player/walk_1"),
+				Assets.get("player/walk_2"), this);
 
 		// Création/Chargement nouveau monde
 		mapManager = new MapManager(player);
 		mapManager.loadWorld("TestWorld");
 
 		// Lancement des threads
-		runner = new Runner(this); // Actualiser les blocs puis les textures
+		Runner runner = new Runner(this); // Actualiser les blocs puis les textures
 		mapManager.newLoadingMapThread(runner, this); // Charger et décharger les maps
 
 		setFrameBounds(new Rectangle(MainFrame.INIT_WIDTH, MainFrame.INIT_HEIGHT));
@@ -102,16 +107,17 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 	public void paintComponent(Graphics g) {
 		g.drawImage(sky, 0, 0, this.getWidth(), this.getHeight(), null);
 		// Le paint des blocs intégre le test de collision avec le joueur
-		mapManager.refreshPaintAllDisplayedBlocks(g, RefreshPaintMap.PAINT, this.getWidth(), this.getHeight(),
-				newBlockWidth, newBlockHeight, 0, 0, 0, 0, this, null);
+		mapManager.drawMaps(g, this.getWidth(), this.getHeight(), newBlockWidth, newBlockHeight);
+		mapManager.computeCollisions(
+				this.getWidth(), this.getHeight(), newBlockWidth, newBlockHeight, playerWidth, playerHeight, playerX, playerY, this);
+
 		player.paint(g, playerX, playerY, playerWidth, playerHeight);
 
 		if (isEscapeMenuOpen) {
 			new EscapeMenu().paint(g, this.getHeight());
 		}
 
-		mapManager.refreshPaintAllDisplayedBlocks(g, RefreshPaintMap.SELECTION, this.getWidth(), this.getHeight(),
-				newBlockWidth, newBlockHeight, 0, 0, 0, 0, this, mouseLocation);
+		mapManager.drawSelections(g, this.getWidth(), this.getHeight(), newBlockWidth, newBlockHeight, mouseLocation);
 	}
 
 	public void setFrameBounds(Rectangle frameBounds) {
@@ -143,17 +149,15 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 	// KeyListener
 	public void keyPressed(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-			if (isEscapeMenuOpen) {
-				isEscapeMenuOpen = false;
-			} else {
-				isEscapeMenuOpen = true;
-			}
+            isEscapeMenuOpen = !isEscapeMenuOpen;
 		}
+
 		if (e.getKeyCode() == KeyEvent.VK_D) {
 			keyDPressed = true;
 		} else if (e.getKeyCode() == KeyEvent.VK_Q) {
 			keyQPressed = true;
 		}
+
 		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
 			keySpacePressed = true;
 		}

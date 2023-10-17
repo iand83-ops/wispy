@@ -1,30 +1,29 @@
 package fr.nicolas.wispy.panels;
 
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.Objects;
-
-import javax.imageio.ImageIO;
-
 import fr.nicolas.wispy.frames.MainFrame;
 import fr.nicolas.wispy.panels.components.menu.WButton;
 import fr.nicolas.wispy.panels.components.menu.WPanel;
 import fr.nicolas.wispy.utils.Assets;
 
+import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+
 public class MenuPanel extends WPanel implements MouseListener, MouseMotionListener {
 
-	private BufferedImage bg, title;
+	private final BufferedImage bg;
+    private final BufferedImage title;
+
 	private Point mouseLocation = new Point(0, 0);
-	private WButton buttonStart, buttonSettings, buttonQuit;
-	private MainFrame mainFrame;
+
+	private WButton buttonStart;
+	private WButton buttonSettings;
+	private WButton buttonQuit;
+
+	private final MainFrame mainFrame;
 
 	public MenuPanel(Rectangle frameBounds, MainFrame mainFrame) {
 		super(frameBounds);

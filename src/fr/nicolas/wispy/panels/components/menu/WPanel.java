@@ -12,8 +12,6 @@ public abstract class WPanel extends JPanel {
 		this.frameBounds = frameBounds;
 	}
 
-	public void setFrameBounds(Rectangle frameBounds) {
-
-	}
+	public abstract void setFrameBounds(Rectangle frameBounds);
 
 }

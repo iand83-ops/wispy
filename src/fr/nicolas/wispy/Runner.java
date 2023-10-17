@@ -5,7 +5,7 @@ import fr.nicolas.wispy.panels.GamePanel;
 public class Runner implements Runnable {
 
 	private boolean isRunning = false;
-	private GamePanel gamePanel;
+	private final GamePanel gamePanel;
 	private int maxFps = 80;
 	private long waitTime = 4;
 
@@ -31,11 +31,7 @@ public class Runner implements Runnable {
 				gamePanel.repaint();
 				
 				differenceTime = System.nanoTime() - startTime;
-				waitTime = maxFps - differenceTime / 1000000;
-
-				if (waitTime < 4) {
-					waitTime = 4;
-				}
+				waitTime = Math.max(maxFps - differenceTime / 1000000, 4);
 
 				try {
 					Thread.sleep(waitTime);

@@ -1,164 +1,168 @@
 package fr.nicolas.wispy.panels.components.game;
 
-import java.awt.Graphics;
-import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
-
 import fr.nicolas.wispy.panels.GamePanel;
-import fr.nicolas.wispy.panels.functions.MapManager.RefreshPaintMap;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
 
 public class Player extends Rectangle {
 
-	private BufferedImage playerStopImg, playerWalk1Img, playerWalk2Img;
-	private boolean isFalling = false, isJumping = false, isWalking = false, isToRight = true, canGoLeft = true,
-			canGoRight = true, canGoUp = true;
-	private int jumpNum = 1, walkNum = 0;
-	private GamePanel gamePanel;
+    private final BufferedImage playerStopImg;
+    private final BufferedImage playerWalk1Img;
+    private final BufferedImage playerWalk2Img;
 
-	public Player(BufferedImage playerStopImg, BufferedImage playerWalk1Img, BufferedImage playerWalk2Img,
-			GamePanel gamePanel) {
-		this.playerStopImg = playerStopImg;
-		this.playerWalk1Img = playerWalk1Img;
-		this.playerWalk2Img = playerWalk2Img;
-		this.gamePanel = gamePanel;
-		this.width = GamePanel.BLOCK_SIZE;
-		this.height = GamePanel.BLOCK_SIZE * 2;
-	}
+    private boolean isFalling = false;
+    private boolean isJumping = false;
+    private boolean isWalking = false;
+    private boolean isToRight = true;
+    private boolean canGoLeft = true;
+    private boolean canGoRight = true;
+    private boolean canGoUp = true;
 
-	public void refresh(int playerWidth, int playerHeight, int playerX, int playerY) {
-		gamePanel.getMapManager().refreshPaintAllDisplayedBlocks(null, RefreshPaintMap.COLLISION, gamePanel.getWidth(),
-				gamePanel.getHeight(), gamePanel.getNewBlockWidth(), gamePanel.getNewBlockHeight(), playerWidth,
-				playerHeight, playerX, playerY, gamePanel, null);
+    private int jumpNum = 1;
+    private int walkNum = 0;
 
-		// Déplacements
-		if (isWalking) {
-			if (isToRight && canGoRight) {
-				walkNum++;
-				for (int i = 0; i < 2; i++) {
-					if (canGoRight) {
-						x += 1;
-						gamePanel.getMapManager().refreshPaintAllDisplayedBlocks(null, RefreshPaintMap.COLLISION,
-								gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
-								gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel,
-								null);
-					} else {
-						break;
-					}
-				}
-			}
-			if (!isToRight && canGoLeft) {
-				walkNum++;
-				for (int i = 0; i < 2; i++) {
-					if (canGoLeft) {
-						x -= 1;
-						gamePanel.getMapManager().refreshPaintAllDisplayedBlocks(null, RefreshPaintMap.COLLISION,
-								gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
-								gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel,
-								null);
-					} else {
-						break;
-					}
-				}
-			}
-		}
+    private final GamePanel gamePanel;
 
-		if (walkNum > 20) {
-			walkNum = 1;
-		}
+    public Player(BufferedImage playerStopImg, BufferedImage playerWalk1Img, BufferedImage playerWalk2Img, GamePanel gamePanel) {
+        this.playerStopImg = playerStopImg;
+        this.playerWalk1Img = playerWalk1Img;
+        this.playerWalk2Img = playerWalk2Img;
+        this.gamePanel = gamePanel;
+        this.width = GamePanel.BLOCK_SIZE;
+        this.height = GamePanel.BLOCK_SIZE * 2;
+    }
 
-		// Jump
-		if (isJumping && canGoUp) {
-			if (jumpNum != 15) {
-				for (int i = 0; i < 8 - jumpNum / 2; i++) {
-					if (canGoUp) {
-						y -= 1;
-						gamePanel.getMapManager().refreshPaintAllDisplayedBlocks(null, RefreshPaintMap.COLLISION,
-								gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
-								gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel,
-								null);
-					} else {
-						break;
-					}
-				}
-				jumpNum++;
-			} else {
-				jumpNum = 1;
-				isJumping = false;
-			}
-		}
+    public void refresh(int playerWidth, int playerHeight, int playerX, int playerY) {
+        gamePanel.getMapManager().computeCollisions(gamePanel.getWidth(), gamePanel.getHeight(),
+                gamePanel.getNewBlockWidth(), gamePanel.getNewBlockHeight(), playerWidth, playerHeight,
+                playerX, playerY, gamePanel);
 
-		if (!canGoUp) {
-			jumpNum = 1;
-			isJumping = false;
-		}
+        // Déplacements
+        if (isWalking) {
+            if (isToRight && canGoRight) {
+                walkNum++;
+                for (int i = 0; i < 2; i++) {
+                    if (canGoRight) {
+                        x += 1;
+                        gamePanel.getMapManager().computeCollisions(
+                                gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
+                                gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel);
+                    } else {
+                        break;
+                    }
+                }
+            }
+            if (!isToRight && canGoLeft) {
+                walkNum++;
+                for (int i = 0; i < 2; i++) {
+                    if (canGoLeft) {
+                        x -= 1;
+                        gamePanel.getMapManager().computeCollisions(
+                                gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
+                                gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel);
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
 
-		// Gravité
-		if (isFalling && !isJumping) {
-			for (int i = 0; i < 4; i++) {
-				if (isFalling) {
-					y += 1;
-					gamePanel.getMapManager().refreshPaintAllDisplayedBlocks(null, RefreshPaintMap.COLLISION,
-							gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
-							gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel,
-							null);
-				} else {
-					break;
-				}
-			}
-		}
+        if (walkNum > 20) {
+            walkNum = 1;
+        }
 
-	}
+        // Jump
+        if (isJumping && canGoUp) {
+            if (jumpNum != 15) {
+                for (int i = 0; i < 8 - jumpNum / 2; i++) {
+                    if (canGoUp) {
+                        y -= 1;
+                        gamePanel.getMapManager().computeCollisions(
+                                gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
+                                gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel);
+                    } else {
+                        break;
+                    }
+                }
+                jumpNum++;
+            } else {
+                jumpNum = 1;
+                isJumping = false;
+            }
+        }
 
-	public void paint(Graphics g, int x, int y, int width, int height) {
-		// TODO: iswalking inutilisable car toujours faux donc frame playerStopImg n'est
-		// pas affiché (toujours walk)
-		if (isJumping) {
-			drawImg(g, playerWalk2Img, x, y, width, height);
-		} else if (isFalling || !isWalking || !canGoRight || !canGoLeft) {
-			drawImg(g, playerStopImg, x, y, width, height);
-		} else if (walkNum <= 10) {
-			drawImg(g, playerWalk1Img, x, y, width, height);
-		} else if (!isJumping && !isFalling && walkNum <= 20) {
-			drawImg(g, playerWalk2Img, x, y, width, height);
-		}
-	}
+        if (!canGoUp) {
+            jumpNum = 1;
+            isJumping = false;
+        }
 
-	private void drawImg(Graphics g, BufferedImage img, int x, int y, int width, int height) {
-		if (isToRight) {
-			g.drawImage(img, x, y, width, height, null);
-		} else {
-			g.drawImage(img, x + width, y, -width, height, null);
-		}
-	}
+        // Gravité
+        if (isFalling && !isJumping) {
+            for (int i = 0; i < 4; i++) {
+                if (isFalling) {
+                    y += 1;
+                    gamePanel.getMapManager().computeCollisions(
+                            gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
+                            gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel);
+                } else {
+                    break;
+                }
+            }
+        }
 
-	public void setFalling(boolean isFalling) {
-		this.isFalling = isFalling;
-	}
+    }
 
-	public void setWalking(boolean isWalking) {
-		this.isWalking = isWalking;
-	}
+    public void paint(Graphics g, int x, int y, int width, int height) {
+        // TODO: iswalking inutilisable car toujours faux donc frame playerStopImg n'est
+        // pas affiché (toujours walk)
+        if (isJumping) {
+            drawImg(g, playerWalk2Img, x, y, width, height);
+        } else if (isFalling || !isWalking || !canGoRight || !canGoLeft) {
+            drawImg(g, playerStopImg, x, y, width, height);
+        } else if (walkNum <= 10) {
+            drawImg(g, playerWalk1Img, x, y, width, height);
+        } else if (!isJumping && !isFalling && walkNum <= 20) {
+            drawImg(g, playerWalk2Img, x, y, width, height);
+        }
+    }
 
-	public void setToRight(boolean isToRight) {
-		this.isToRight = isToRight;
-	}
+    private void drawImg(Graphics g, BufferedImage img, int x, int y, int width, int height) {
+        if (isToRight) {
+            g.drawImage(img, x, y, width, height, null);
+        } else {
+            g.drawImage(img, x + width, y, -width, height, null);
+        }
+    }
 
-	public void setJumping(boolean isJumping) {
-		if (isJumping && !isFalling) {
-			this.isJumping = isJumping;
-		}
-	}
+    public void setFalling(boolean isFalling) {
+        this.isFalling = isFalling;
+    }
 
-	public void setCanGoLeft(boolean canGoLeft) {
-		this.canGoLeft = canGoLeft;
-	}
+    public void setWalking(boolean isWalking) {
+        this.isWalking = isWalking;
+    }
 
-	public void setCanGoRight(boolean canGoRight) {
-		this.canGoRight = canGoRight;
-	}
+    public void setToRight(boolean isToRight) {
+        this.isToRight = isToRight;
+    }
 
-	public void setCanGoUp(boolean canGoUp) {
-		this.canGoUp = canGoUp;
-	}
+    public void setJumping(boolean isJumping) {
+        if (isJumping && !isFalling) {
+            this.isJumping = true;
+        }
+    }
+
+    public void setCanGoLeft(boolean canGoLeft) {
+        this.canGoLeft = canGoLeft;
+    }
+
+    public void setCanGoRight(boolean canGoRight) {
+        this.canGoRight = canGoRight;
+    }
+
+    public void setCanGoUp(boolean canGoUp) {
+        this.canGoUp = canGoUp;
+    }
 
 }
