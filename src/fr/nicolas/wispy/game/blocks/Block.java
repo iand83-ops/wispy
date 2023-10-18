@@ -7,12 +7,12 @@ import java.awt.image.BufferedImage;
 public class Block {
 
 	private final Blocks type;
-	private final float width;
-	private final float height;
+	private final double width;
+	private final double height;
 
 	private final BufferedImage texture;
 
-	public Block(Blocks type, float width, float height) {
+	public Block(Blocks type, double width, double height) {
 		this.type = type;
 		this.width = width;
 		this.height = height;
@@ -24,11 +24,11 @@ public class Block {
 		return this.type;
 	}
 
-	public float getWidth() {
+	public double getWidth() {
 		return this.width;
 	}
 
-	public float getHeight() {
+	public double getHeight() {
 		return this.height;
 	}
 

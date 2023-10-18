@@ -6,8 +6,8 @@ public class Runner implements Runnable {
 
 	private boolean isRunning = false;
 	private final GamePanel gamePanel;
-	private int maxFps = 80;
-	private long waitTime = 4;
+	private int maxFps = 125;
+	private long waitTime = 8;
 
 	public Runner(GamePanel gamePanel) {
 		this.gamePanel = gamePanel;
@@ -24,14 +24,17 @@ public class Runner implements Runnable {
 			long startTime, differenceTime;
 			maxFps = 1000 / maxFps;
 
+			long tickTime = System.nanoTime();
 			while (isRunning) {
 				startTime = System.nanoTime();
 
-				gamePanel.refresh();
+				gamePanel.tick((startTime - tickTime) / 1_000_000.0);
+				tickTime = System.nanoTime();
+
 				gamePanel.repaint();
 				
 				differenceTime = System.nanoTime() - startTime;
-				waitTime = Math.max(maxFps - differenceTime / 1000000, 4);
+				waitTime = Math.max(maxFps - differenceTime / 1_000_000, 8);
 
 				try {
 					Thread.sleep(waitTime);

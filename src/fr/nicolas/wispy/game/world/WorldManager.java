@@ -4,6 +4,9 @@ import fr.nicolas.wispy.Runner;
 import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.BlockRegistry;
 import fr.nicolas.wispy.game.blocks.Blocks;
+import fr.nicolas.wispy.game.render.AABB;
+import fr.nicolas.wispy.game.render.Camera;
+import fr.nicolas.wispy.game.render.Vector2D;
 import fr.nicolas.wispy.panels.GamePanel;
 import fr.nicolas.wispy.panels.components.game.Player;
 
@@ -24,9 +27,9 @@ public class WorldManager {
 	public int[][] mapBRight;
 	public int[][] mapBCenter;
 
-	private String worldName;
 	private File worldDir;
 	private final Player player;
+	private final Camera camera;
 
 	// Random generation variables
 	private int state = 0;
@@ -42,14 +45,13 @@ public class WorldManager {
 
 	private BlockRegistry blockRegistry;
 
-	public WorldManager(Player player) {
+	public WorldManager(Player player, Camera camera) {
 		this.player = player;
+		this.camera = camera;
 		this.blockRegistry = new BlockRegistry();
 	}
 
 	public void loadWorld(String worldName) {
-		this.worldName = worldName;
-
 		this.worldDir = new File("Wispy/worlds/" + worldName);
 
 		if (!this.worldDir.isDirectory()) {
@@ -66,12 +68,10 @@ public class WorldManager {
 		this.mapBRight = loadChunk(this.mapBRightNum);
 
 		// Player spawnpoint
-		this.player.x = 0;
-		this.player.y = getPlayerSpawnY();
+		this.player.setPos(0, getPlayerSpawnY());
 	}
 
-	public int getPlayerSpawnY() {
-		// TODO: Système à refaire
+	public double getPlayerSpawnY() {
 		int y = 0;
 		while (mapBCenter[0][y] == Blocks.AIR.getId()) {
 			y++;
@@ -79,13 +79,13 @@ public class WorldManager {
 		return y;
 	}
 
-	public void newLoadingMapThread(Runner runner, GamePanel gamePanel) {
+	public void startLoadingChunkThread(Runner runner, GamePanel gamePanel) {
 		Thread loadNextMap = new Thread(() -> {
             while (true) {
                 int newX;
                 if (mapBRight != null) {
-                    newX = ((mapBRight.length / 2 + mapBRightNum * mapBRight.length) * gamePanel.getNewBlockWidth())
-                            - (int) (player.getX() * gamePanel.getNewBlockWidth() / GamePanel.BLOCK_SIZE);
+                    newX = ((mapBRight.length / 2 + mapBRightNum * mapBRight.length) * gamePanel.getBlockSize())
+                            - (int) (player.getX() * gamePanel.getBlockSize());
                     if (newX >= 0 && newX <= gamePanel.getWidth()) {
                         saveChunk(mapBLeft, mapBLeftNum);
 
@@ -99,8 +99,8 @@ public class WorldManager {
                     }
                 }
                 if (mapBLeft != null) {
-                    newX = ((mapBLeft.length / 2 + mapBLeftNum * mapBLeft.length) * gamePanel.getNewBlockWidth())
-                            - (int) (player.getX() * gamePanel.getNewBlockWidth() / GamePanel.BLOCK_SIZE);
+                    newX = ((mapBLeft.length / 2 + mapBLeftNum * mapBLeft.length) * gamePanel.getBlockSize())
+                            - (int) (player.getX() * gamePanel.getBlockSize());
                     if (newX >= 0 && newX <= gamePanel.getWidth()) {
                         saveChunk(mapBRight, mapBRightNum);
 
@@ -245,15 +245,12 @@ public class WorldManager {
 		return (int) (Math.random() * (max - min + 1) + min);
 	}
 
-	public void computeCollisions(int width, int height,
-								  int newBlockWidth, int newBlockHeight, int playerX, int playerY, int playerWidth, int playerHeight,
-								  GamePanel gamePanel) {
-		computeCollision(mapBCenter, mapBCenterNum, width, height, newBlockWidth, newBlockHeight,
-				gamePanel, playerWidth, playerHeight, playerX, playerY);
-		computeCollision(mapBLeft, mapBLeftNum, width, height, newBlockWidth, newBlockHeight,
-				gamePanel, playerWidth, playerHeight, playerX, playerY);
-		computeCollision(mapBRight, mapBRightNum, width, height, newBlockWidth, newBlockHeight,
-				gamePanel, playerWidth, playerHeight, playerX, playerY);
+	public void computeCollisions(Player player) {
+		player.setFalling(true);
+
+		computeCollision(mapBCenter, mapBCenterNum, player);
+		computeCollision(mapBLeft, mapBLeftNum, player);
+		computeCollision(mapBRight, mapBRightNum, player);
 
 		hasFoundFallingCollision = false;
 		hasFoundUpCollision = false;
@@ -261,149 +258,181 @@ public class WorldManager {
 		hasFoundLeftCollision = false;
 	}
 
-	public void drawMaps(Graphics g, int width, int height, int newBlockWidth, int newBlockHeight) {
-		drawMap(g, mapBCenter, mapBCenterNum, width, height, newBlockWidth, newBlockHeight);
-		drawMap(g, mapBLeft, mapBLeftNum, width, height, newBlockWidth, newBlockHeight);
-		drawMap(g, mapBRight, mapBRightNum, width, height, newBlockWidth, newBlockHeight);
+	public void renderChunks(Graphics g, int width, int height, int blockWidth) {
+		renderChunk(g, mapBCenter, mapBCenterNum, width, height, blockWidth);
+		renderChunk(g, mapBLeft, mapBLeftNum, width, height, blockWidth);
+		renderChunk(g, mapBRight, mapBRightNum, width, height, blockWidth);
 	}
 
-	public void drawSelections(Graphics g, int width, int height, int newBlockWidth, int newBlockHeight, Point mouseLocation) {
-		drawSelection(g, mapBCenter, mapBCenterNum, width, height, newBlockWidth, newBlockHeight, mouseLocation);
-		drawSelection(g, mapBLeft, mapBLeftNum, width, height, newBlockWidth, newBlockHeight, mouseLocation);
-		drawSelection(g, mapBRight, mapBRightNum, width, height, newBlockWidth, newBlockHeight, mouseLocation);
+	public void renderSelections(Graphics g, int width, Point mouseLocation) {
+		renderSelection(g, mapBCenter, mapBCenterNum, width, mouseLocation);
+		renderSelection(g, mapBLeft, mapBLeftNum, width, mouseLocation);
+		renderSelection(g, mapBRight, mapBRightNum, width, mouseLocation);
 	}
 
-	// TODO: Fonction à réorganiser
-	private void computeCollision(int[][] mapB, int times, int width,
-								  int height, int newBlockWidth, int newBlockHeight, GamePanel gamePanel, int playerWidth, int playerHeight,
-								  int playerX, int playerY) {
+	private void computeCollision(int[][] chunk, int chunkIndex, Player player) {
+		if (chunk == null) {
+			return;
+		}
 
-		if (mapB != null) {
-			for (int x = 0; x < mapB.length; x++) {
-				int newX = ((x + times * mapB.length) * newBlockWidth) - (int) (player.getX() / GamePanel.BLOCK_SIZE * newBlockWidth);
-				if (newX >= -350 && newX <= width + 350) {
-					for (int y = 0; y < mapB[0].length; y++) {
-						int newY = (y * newBlockHeight) - (int) (player.getY() / GamePanel.BLOCK_SIZE * newBlockHeight);
-						if (newY >= -350 && newY <= height + 350) {
-							if (mapB[x][y] != Blocks.AIR.getId()) {
-								// Test des collisions avec le joueur
-								if (!hasFoundFallingCollision) {
-									if (new Rectangle(newX, newY, newBlockWidth, newBlockHeight)
-											.contains(new Point(playerX, playerY + playerHeight))
-											|| new Rectangle(newX, newY, newBlockWidth, newBlockHeight).contains(
-													new Point(playerX + playerWidth - 1, playerY + playerHeight))) {
+		int chunkWidth = chunk.length;
+		int chunkX = chunkWidth * chunkIndex;
 
-										gamePanel.getPlayer().setFalling(false);
-										hasFoundFallingCollision = true;
+        double playerX = player.getX();
+        double playerY = player.getY();
+        double playerWidth = player.getWidth();
+        double playerHeight = player.getHeight();
 
-									} else {
-										gamePanel.getPlayer().setFalling(true);
-									}
-								}
-								if (!hasFoundUpCollision) {
-									if (new Rectangle(newX, newY, newBlockWidth, newBlockHeight)
-											.contains(new Point(playerX, playerY - 1))
-											|| new Rectangle(newX, newY, newBlockWidth, newBlockHeight)
-													.contains(new Point(playerX + playerWidth - 1, playerY - 1))) {
+		if (playerX + playerWidth < chunkX || playerX > chunkX + chunkWidth) {
+			return;
+		}
 
-										gamePanel.getPlayer().setCanGoUp(false);
-										hasFoundUpCollision = true;
+		int chunkY = 0;
+		int chunkHeight = chunk[0].length;
 
-									} else {
-										gamePanel.getPlayer().setCanGoUp(true);
-									}
-								}
-								if (!hasFoundRightCollision) {
-									if (new Rectangle(newX, newY, newBlockWidth, newBlockHeight)
-											.contains(new Point(playerX + playerWidth, playerY))
-											|| new Rectangle(newX, newY, newBlockWidth, newBlockHeight).contains(
-													new Point(playerX + playerWidth, playerY + playerHeight - 1))
-											|| new Rectangle(newX, newY, newBlockWidth, newBlockHeight).contains(
-													new Point(playerX + playerWidth, playerY + playerHeight / 2))) {
+		if (playerY + playerHeight < 0 || playerY > chunkHeight) {
+			player.setFalling(true);
+			return;
+		}
 
-										gamePanel.getPlayer().setCanGoRight(false);
-										hasFoundRightCollision = true;
+        double playerChunkX = playerX - chunkX;
+        double playerChunkY = playerY - chunkY;
 
-									} else {
-										gamePanel.getPlayer().setCanGoRight(true);
-									}
-								}
-								if (!hasFoundLeftCollision) {
-									if (new Rectangle(newX, newY, newBlockWidth, newBlockHeight)
-											.contains(new Point(playerX - 1, playerY))
-											|| new Rectangle(newX, newY, newBlockWidth, newBlockHeight)
-													.contains(new Point(playerX - 1, playerY + playerHeight - 1))
-											|| new Rectangle(newX, newY, newBlockWidth, newBlockHeight)
-													.contains(new Point(playerX - 1, playerY + playerHeight / 2))) {
+		float offset = 1.0F / GamePanel.BLOCK_RESOLUTION;
 
-										gamePanel.getPlayer().setCanGoLeft(false);
-										hasFoundLeftCollision = true;
+		AABB playerLeftAABB = new AABB(new Vector2D(playerChunkX, playerChunkY - playerHeight + offset), new Vector2D(playerChunkX, playerChunkY - offset));
+		AABB playerRightAABB = new AABB(new Vector2D(playerChunkX + playerWidth, playerChunkY - playerHeight + offset), new Vector2D(playerChunkX + playerWidth, playerChunkY - offset));
+		AABB playerUpAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY - playerHeight), new Vector2D(playerChunkX + playerWidth - offset, playerChunkY - playerHeight));
+		AABB playerDownAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY), new Vector2D(playerChunkX + playerWidth - offset, playerChunkY));
 
-									} else {
-										gamePanel.getPlayer().setCanGoLeft(true);
-									}
-								}
-							}
-						} else if (newY > 0) {
-							break;
-						}
+		for (int x = (int) -playerWidth; x <= playerWidth; x++) {
+			for (int y = (int) -playerHeight; y <= playerHeight; y++) {
+				int blockX = (int) (playerChunkX + x);
+				int blockY = (int) (playerChunkY + y);
+
+				if (blockX < 0 || blockX >= chunkWidth || blockY < 0 || blockY >= chunkHeight) {
+					continue;
+				}
+
+				int blockID = chunk[blockX][blockY];
+
+				Block block = this.blockRegistry.getBlock(chunk[blockX][blockY]);
+
+                double blockWidth = block.getWidth();
+                double blockHeight = block.getHeight();
+
+				AABB blockAABB = new AABB(new Vector2D(blockX, blockY), new Vector2D(blockX + blockWidth, blockY + blockHeight));
+
+				if (blockID == Blocks.AIR.getId()) {
+					continue;
+				}
+
+				if (!hasFoundFallingCollision) {
+					if (blockAABB.intersects(playerDownAABB)) {
+						player.setFalling(false);
+						hasFoundFallingCollision = true;
+					} else {
+						player.setFalling(true);
 					}
-				} else if (newX > 0) {
-					break;
+				}
+				if (!hasFoundUpCollision) {
+					if (blockAABB.intersects(playerUpAABB)) {
+						player.setCanGoUp(false);
+						hasFoundUpCollision = true;
+					} else {
+						player.setCanGoUp(true);
+					}
+				}
+				if (!hasFoundRightCollision) {
+					if (blockAABB.intersects(playerRightAABB)) {
+						player.setCanGoRight(false);
+						hasFoundRightCollision = true;
+					} else {
+						player.setCanGoRight(true);
+					}
+				}
+				if (!hasFoundLeftCollision) {
+					if (blockAABB.intersects(playerLeftAABB)) {
+						player.setCanGoLeft(false);
+						hasFoundLeftCollision = true;
+					} else {
+						player.setCanGoLeft(true);
+					}
 				}
 			}
 		}
 	}
 
-	private void drawMap(Graphics g, int[][] mapB, int times, int width, int height, int newBlockWidth, int newBlockHeight) {
-		if (mapB != null) {
-			for (int x = 0; x < mapB.length; x++) {
-				int newX = ((x + times * mapB.length) * newBlockWidth) - (int) (player.getX() / GamePanel.BLOCK_SIZE * newBlockWidth);
-				if (newX >= -350 && newX <= width + 350) {
-					for (int y = 0; y < mapB[0].length; y++) {
-						int newY = (y * newBlockHeight) - (int) (player.getY() / GamePanel.BLOCK_SIZE * newBlockHeight);
-						if (newY >= -350 && newY <= height + 350) {
-							if (mapB[x][y] != Blocks.AIR.getId()) {
-								Block block = this.blockRegistry.getBlock(mapB[x][y]);
-								g.drawImage(block.getTexture(), newX, newY, newBlockWidth, newBlockHeight, null);
-							}
-						} else if (newY > 0) {
-							break;
-						}
-					}
-				} else if (newX > 0) {
-					break;
+	private void renderChunk(Graphics g, int[][] chunk, int chunkIndex, int width, int height, int blockSize) {
+		if (chunk == null) {
+			return;
+		}
+
+		int chunkWidth = chunk.length;
+		int chunkX = chunkWidth * chunkIndex;
+
+		double screenWidth = width / (double) blockSize;
+
+		if (chunkX + chunkWidth < camera.getX() || chunkX > camera.getX() + screenWidth) {
+			return;
+		}
+
+		int chunkHeight = chunk[0].length;
+		int chunkY = 0;
+
+		double screenHeight = height / (double) blockSize;
+
+		if (chunkY + chunkHeight < camera.getY() || chunkY > camera.getY() + screenHeight) {
+			return;
+		}
+
+		int startingPointX = (int) Math.max(0, camera.getX() - chunkX);
+		int startingPointY = (int) Math.max(0, camera.getY() - chunkY);
+
+		for (int x = startingPointX; x < Math.min(camera.getX() + screenWidth - chunkX, chunk.length); x++) {
+			int renderX = (int) ((x + chunkX - camera.getX()) * blockSize);
+
+			for (int y = startingPointY; y < Math.min(camera.getY() + screenHeight - chunkY, chunk[0].length); y++) {
+				int renderY = (int) ((y - camera.getY()) * blockSize);
+
+				if (chunk[x][y] != Blocks.AIR.getId()) {
+					Block block = this.blockRegistry.getBlock(chunk[x][y]);
+					g.drawImage(block.getTexture(), renderX, renderY, blockSize, blockSize, null);
 				}
 			}
 		}
 	}
 
-	public void drawSelection(Graphics g, int[][] mapB, int times, int width,
-							  int height, int newBlockWidth, int newBlockHeight, Point mouseLocation) {
-		if (mapB != null) {
-			for (int x = 0; x < mapB.length; x++) {
-				int newX = ((x + times * mapB.length) * newBlockWidth) - (int) (player.getX() / GamePanel.BLOCK_SIZE * newBlockWidth);
-				if (newX >= -350 && newX <= width + 350) {
-					for (int y = 0; y < mapB[0].length; y++) {
-						int newY = (y * newBlockHeight) - (int) (player.getY() / GamePanel.BLOCK_SIZE * newBlockHeight);
-						if (newY >= -350 && newY <= height + 350) {
-							if (mapB[x][y] != Blocks.AIR.getId()) {
-								// Block selection
-								if (new Rectangle(newX, newY, newBlockWidth, newBlockHeight)
-										.contains(mouseLocation)) {
-									g.setColor(new Color(255, 255, 255, 50));
-									g.drawRect(newX, newY, newBlockWidth, newBlockHeight);
-								}
-							}
-						} else if (newY > 0) {
-							break;
-						}
-					}
-				} else if (newX > 0) {
-					break;
-				}
-			}
+	public void renderSelection(Graphics g, int[][] chunk, int chunkIndex, int blockSize, Point mouseLocation) {
+		if (chunk == null) {
+			return;
 		}
+
+		int blockX = (int) Math.floor(camera.getX() + mouseLocation.x / (double) blockSize);
+		int blockY = (int) Math.floor(camera.getY() + mouseLocation.y / (double) blockSize);
+
+		int chunkWidth = chunk.length;
+		int chunkX = chunkWidth * chunkIndex;
+
+		if (blockX < chunkX || blockX >= chunkX + chunkWidth) {
+			return;
+		}
+
+		int chunkHeight = chunk[0].length;
+		int chunkY = 0;
+
+		if (blockY < chunkY || blockY >= chunkY + chunkHeight) {
+			return;
+		}
+
+		int blockID = chunk[blockX - chunkX][blockY - chunkY];
+
+		if (blockID == Blocks.AIR.getId()) {
+			return;
+		}
+
+		g.setColor(new Color(255, 255, 255, 50));
+		g.drawRect((int) ((blockX - camera.getX()) * blockSize), (int) ((blockY - camera.getY()) * blockSize), blockSize, blockSize);
 	}
 
 }

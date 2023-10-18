@@ -2,11 +2,12 @@ package fr.nicolas.wispy.panels;
 
 import fr.nicolas.wispy.Runner;
 import fr.nicolas.wispy.frames.MainFrame;
+import fr.nicolas.wispy.game.render.Camera;
+import fr.nicolas.wispy.game.utils.Assets;
+import fr.nicolas.wispy.game.world.WorldManager;
 import fr.nicolas.wispy.panels.components.game.Player;
 import fr.nicolas.wispy.panels.components.menu.EscapeMenu;
 import fr.nicolas.wispy.panels.components.menu.WPanel;
-import fr.nicolas.wispy.game.world.WorldManager;
-import fr.nicolas.wispy.game.utils.Assets;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -14,20 +15,16 @@ import java.awt.image.BufferedImage;
 
 public class GamePanel extends WPanel implements KeyListener, MouseListener, MouseMotionListener {
 
-	public static final int BLOCK_SIZE = 25;
-	public static final int INIT_PLAYER_X = 605;
-	public static final int INIT_PLAYER_Y = 315;
+	public static final int BLOCK_RESOLUTION = 16;
 
-	private int newBlockWidth = BLOCK_SIZE;
-	private int newBlockHeight = BLOCK_SIZE;
-	private int playerX;
-	private int playerY;
+	private int blockSize = BLOCK_RESOLUTION;
 	private int playerWidth;
 	private int playerHeight;
 
 	private final WorldManager mapManager;
 	private final BufferedImage sky;
 	private final Player player;
+	private Camera camera;
 	private Point mouseLocation;
 
 	private boolean keyDPressed = false, keyQPressed = false, keySpacePressed = false, isEscapeMenuOpen = false;
@@ -35,37 +32,39 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 	public GamePanel(Rectangle frameBounds, boolean isNewGame) {
 		super(frameBounds);
 
-		this.addKeyListener(this);
-		this.addMouseListener(this);
-		this.addMouseMotionListener(this);
-		this.setFocusable(true);
+		addKeyListener(this);
+		addMouseListener(this);
+		addMouseMotionListener(this);
+		setFocusable(true);
+		setDoubleBuffered(true);
 
 		sky = Assets.get("map/sky");
 		player = new Player(Assets.get("player/idle"),
 				Assets.get("player/walk_1"),
 				Assets.get("player/walk_2"), this);
+		camera = new Camera();
 
-		// Création/Chargement nouveau monde
-		mapManager = new WorldManager(player);
+		// Load world
+		mapManager = new WorldManager(player, camera);
 		mapManager.loadWorld("TestWorld");
 
-		// Lancement des threads
-		Runner runner = new Runner(this); // Actualiser les blocs puis les textures
-		mapManager.newLoadingMapThread(runner, this); // Charger et décharger les maps
+		// Frame rate thread
+		Runner runner = new Runner(this);
+		// Chunk loading thread
+		mapManager.startLoadingChunkThread(runner, this);
 
-		setFrameBounds(new Rectangle(MainFrame.INIT_WIDTH, MainFrame.INIT_HEIGHT));
+		setFrameBounds(frameBounds);
 	}
 
-	// Refresh / Paint methods
-	public void refresh() {
+	public void tick(double elapsedTime) {
 		if (keyDPressed) {
 			player.setWalking(true);
-			player.setToRight(true);
+			player.setFacingRight(true);
 		}
 
 		if (keyQPressed) {
 			player.setWalking(true);
-			player.setToRight(false);
+			player.setFacingRight(false);
 		}
 
 		if (!keyQPressed && !keyDPressed) {
@@ -77,43 +76,43 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 			keySpacePressed = false;
 		}
 
-		player.refresh(playerX, playerY, playerWidth, playerHeight);
+		player.tick(elapsedTime);
+
+		camera.setX(player.getX() - this.getWidth() / 2.0F / blockSize);
+		camera.setY(player.getY() - this.getHeight() / 2.0F / blockSize);
 	}
 
 	public void paintComponent(Graphics g) {
+		super.paintComponent(g);
+
 		g.drawImage(sky, 0, 0, this.getWidth(), this.getHeight(), null);
 		// Le paint des blocs intégre le test de collision avec le joueur
-		mapManager.drawMaps(g, this.getWidth(), this.getHeight(), newBlockWidth, newBlockHeight);
-		mapManager.computeCollisions(
-				this.getWidth(), this.getHeight(), newBlockWidth, newBlockHeight, playerWidth, playerHeight, playerX, playerY, this);
+		mapManager.renderChunks(g, this.getWidth(), this.getHeight(), blockSize);
 
-		player.paint(g, playerX, playerY, playerWidth, playerHeight);
+		int cameraX = (int) -((camera.getX() - player.getX()) * blockSize);
+		int cameraY = (int) -((camera.getY() - player.getY()) * blockSize);
+
+		g.translate(cameraX, cameraY);
+		player.render(g, playerWidth, playerHeight);
+		g.translate(-cameraX, -cameraY);
 
 		if (isEscapeMenuOpen) {
 			new EscapeMenu().paint(g, this.getHeight());
 		}
 
 		if (mouseLocation != null) {
-			mapManager.drawSelections(g, this.getWidth(), this.getHeight(), newBlockWidth, newBlockHeight, mouseLocation);
+			mapManager.renderSelections(g, blockSize, mouseLocation);
 		}
 	}
 
 	public void setFrameBounds(Rectangle frameBounds) {
-		newBlockWidth = BLOCK_SIZE * (int) frameBounds.getWidth() / MainFrame.INIT_WIDTH;
-		newBlockHeight = BLOCK_SIZE * (int) frameBounds.getHeight() / MainFrame.INIT_HEIGHT;
-		playerX = INIT_PLAYER_X / GamePanel.BLOCK_SIZE * newBlockWidth;
-		playerY = INIT_PLAYER_Y / GamePanel.BLOCK_SIZE * newBlockHeight;
-		playerWidth = (int) player.getWidth() / GamePanel.BLOCK_SIZE * newBlockWidth;
-		playerHeight = (int) player.getHeight() / GamePanel.BLOCK_SIZE * newBlockHeight;
+		blockSize = BLOCK_RESOLUTION * (int) frameBounds.getWidth() / MainFrame.INIT_HEIGHT;
+		playerWidth = (int) player.getWidth() * blockSize;
+		playerHeight = (int) player.getHeight() * blockSize;
 	}
 
-	// Getters and Setters
-	public int getNewBlockWidth() {
-		return newBlockWidth;
-	}
-
-	public int getNewBlockHeight() {
-		return newBlockHeight;
+	public int getBlockSize() {
+		return blockSize;
 	}
 
 	public Player getPlayer() {
@@ -124,7 +123,10 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 		return mapManager;
 	}
 
-	// KeyListener
+	public Camera getCamera() {
+		return camera;
+	}
+
 	public void keyPressed(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
             isEscapeMenuOpen = !isEscapeMenuOpen;
@@ -153,8 +155,6 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 
 	}
 
-	// MouseListener
-
 	public void mouseClicked(MouseEvent e) {
 	}
 
@@ -170,7 +170,6 @@ public class GamePanel extends WPanel implements KeyListener, MouseListener, Mou
 	public void mouseReleased(MouseEvent e) {
 	}
 
-	// MouseMotionListener
 	public void mouseDragged(MouseEvent e) {
 		this.mouseLocation = e.getPoint();
 	}

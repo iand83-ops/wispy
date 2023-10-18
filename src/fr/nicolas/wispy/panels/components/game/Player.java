@@ -5,7 +5,7 @@ import fr.nicolas.wispy.panels.GamePanel;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-public class Player extends Rectangle {
+public class Player {
 
     private final BufferedImage playerStopImg;
     private final BufferedImage playerWalk1Img;
@@ -14,62 +14,70 @@ public class Player extends Rectangle {
     private boolean isFalling = false;
     private boolean isJumping = false;
     private boolean isWalking = false;
-    private boolean isToRight = true;
+    private boolean isFacingRight = true;
     private boolean canGoLeft = true;
     private boolean canGoRight = true;
     private boolean canGoUp = true;
 
     private int jumpNum = 1;
-    private int walkNum = 0;
 
     private final GamePanel gamePanel;
+
+    private double prevX;
+    private double prevY;
+    private double x;
+    private double y;
+
+    private final double width;
+    private final double height;
+
+    private long walkTime = 0;
 
     public Player(BufferedImage playerStopImg, BufferedImage playerWalk1Img, BufferedImage playerWalk2Img, GamePanel gamePanel) {
         this.playerStopImg = playerStopImg;
         this.playerWalk1Img = playerWalk1Img;
         this.playerWalk2Img = playerWalk2Img;
         this.gamePanel = gamePanel;
-        this.width = GamePanel.BLOCK_SIZE;
-        this.height = GamePanel.BLOCK_SIZE * 2;
+        this.width = 1.0F;
+        this.height = 2.0F;
     }
 
-    public void refresh(int playerWidth, int playerHeight, int playerX, int playerY) {
-        gamePanel.getMapManager().computeCollisions(gamePanel.getWidth(), gamePanel.getHeight(),
-                gamePanel.getNewBlockWidth(), gamePanel.getNewBlockHeight(), playerWidth, playerHeight,
-                playerX, playerY, gamePanel);
+    public void tick(double elapsedTime) {
+        gamePanel.getMapManager().computeCollisions(this);
 
-        // Déplacements
+        this.prevX = x;
+        this.prevY = y;
+
+        double moveSpeed = elapsedTime * 0.0035F;
+
+        // Movements
         if (isWalking) {
-            if (isToRight && canGoRight) {
-                walkNum++;
+            if (walkTime == 0) {
+                walkTime = System.currentTimeMillis();
+            }
+
+            if (isFacingRight && canGoRight) {
                 for (int i = 0; i < 2; i++) {
                     if (canGoRight) {
-                        x += 1;
-                        gamePanel.getMapManager().computeCollisions(
-                                gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
-                                gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel);
+                        x += moveSpeed;
+                        gamePanel.getMapManager().computeCollisions(this);
                     } else {
                         break;
                     }
                 }
             }
-            if (!isToRight && canGoLeft) {
-                walkNum++;
+            if (!isFacingRight && canGoLeft) {
                 for (int i = 0; i < 2; i++) {
                     if (canGoLeft) {
-                        x -= 1;
-                        gamePanel.getMapManager().computeCollisions(
-                                gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
-                                gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel);
+                        x -= moveSpeed;
+                        gamePanel.getMapManager().computeCollisions(this);
                     } else {
                         break;
                     }
                 }
             }
-        }
-
-        if (walkNum > 20) {
-            walkNum = 1;
+        } else {
+            walkTime = 0;
         }
 
         // Jump
@@ -77,10 +85,8 @@ public class Player extends Rectangle {
             if (jumpNum != 15) {
                 for (int i = 0; i < 8 - jumpNum / 2; i++) {
                     if (canGoUp) {
-                        y -= 1;
-                        gamePanel.getMapManager().computeCollisions(
-                                gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
-                                gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel);
+                        y -= moveSpeed;
+                        gamePanel.getMapManager().computeCollisions(this);
                     } else {
                         break;
                     }
@@ -97,41 +103,34 @@ public class Player extends Rectangle {
             isJumping = false;
         }
 
-        // Gravité
+        // Gravity
         if (isFalling && !isJumping) {
             for (int i = 0; i < 4; i++) {
                 if (isFalling) {
-                    y += 1;
-                    gamePanel.getMapManager().computeCollisions(
-                            gamePanel.getWidth(), gamePanel.getHeight(), gamePanel.getNewBlockWidth(),
-                            gamePanel.getNewBlockHeight(), playerWidth, playerHeight, playerX, playerY, gamePanel);
+                    y += moveSpeed;
+                    gamePanel.getMapManager().computeCollisions(this);
                 } else {
                     break;
                 }
             }
         }
-
     }
 
-    public void paint(Graphics g, int x, int y, int width, int height) {
-        // TODO: iswalking inutilisable car toujours faux donc frame playerStopImg n'est
-        // pas affiché (toujours walk)
+    public void render(Graphics g, int width, int height) {
         if (isJumping) {
-            drawImg(g, playerWalk2Img, x, y, width, height);
+            drawImage(g, playerWalk2Img, width, height);
         } else if (isFalling || !isWalking || !canGoRight || !canGoLeft) {
-            drawImg(g, playerStopImg, x, y, width, height);
-        } else if (walkNum <= 10) {
-            drawImg(g, playerWalk1Img, x, y, width, height);
-        } else if (!isJumping && !isFalling && walkNum <= 20) {
-            drawImg(g, playerWalk2Img, x, y, width, height);
+            drawImage(g, playerStopImg, width, height);
+        } else {
+            drawImage(g, (System.currentTimeMillis() - walkTime) % 320 < 160 ? playerWalk1Img : playerWalk2Img, width, height);
         }
     }
 
-    private void drawImg(Graphics g, BufferedImage img, int x, int y, int width, int height) {
-        if (isToRight) {
-            g.drawImage(img, x, y, width, height, null);
+    private void drawImage(Graphics g, BufferedImage img, int width, int height) {
+        if (isFacingRight) {
+            g.drawImage(img, 0, -height, width, height, null);
         } else {
-            g.drawImage(img, x + width, y, -width, height, null);
+            g.drawImage(img, width, -height, -width, height, null);
         }
     }
 
@@ -143,8 +142,8 @@ public class Player extends Rectangle {
         this.isWalking = isWalking;
     }
 
-    public void setToRight(boolean isToRight) {
-        this.isToRight = isToRight;
+    public void setFacingRight(boolean isToRight) {
+        this.isFacingRight = isToRight;
     }
 
     public void setJumping(boolean isJumping) {
@@ -165,4 +164,24 @@ public class Player extends Rectangle {
         this.canGoUp = canGoUp;
     }
 
+    public void setPos(double x, double y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public double getX() {
+        return this.x;
+    }
+
+    public double getY() {
+        return this.y;
+    }
+
+    public double getWidth() {
+        return this.width;
+    }
+
+    public double getHeight() {
+        return this.height;
+    }
 }
