@@ -85,11 +85,11 @@ public class MainMenuRenderer extends RendererScreen implements MouseListener, M
 	public void mouseReleased(MouseEvent e) {
 		if (e.getButton() == MouseEvent.BUTTON1) {
 			if (buttonStart.mouseClick(mouseLocation)) {
-				game.startGame();
+				game.start();
 			} else if (buttonSettings.mouseClick(mouseLocation)) {
 				System.out.println(2);
 			} else if (buttonQuit.mouseClick(mouseLocation)) {
-				System.exit(0);
+				game.stop();
 			}
 		}
 

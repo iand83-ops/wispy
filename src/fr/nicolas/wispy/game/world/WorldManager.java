@@ -17,6 +17,9 @@ import java.nio.file.Files;
 
 public class WorldManager {
 
+	private static final int CHUNK_WIDTH = 82;
+	private static final int CHUNK_HEIGHT = 100;
+
 	private int leftChunkIndex = -1;
 	private int[][][] chunks;
 
@@ -71,26 +74,11 @@ public class WorldManager {
 				int[][] chunkLeft = this.chunks[0];
 				int[][] chunkRight = this.chunks[2];
 
-                if (chunkRight != null) {
-					int chunkX = (this.leftChunkIndex + 2) * chunkRight.length;
-                    chunkCenterX = (chunkX + chunkRight.length / 2.0) - game.getPlayer().getX();
-                    if (chunkCenterX <= gamePanel.getWidth() / (double) gamePanel.getBlockSize()) {
-                        saveChunk(chunkLeft, this.leftChunkIndex);
-
-						this.chunks[0] = this.chunks[1];
-						this.chunks[1] = this.chunks[2];
-
-						this.leftChunkIndex++;
-						this.chunks[2] = loadChunk(this.leftChunkIndex + 2);
-                    }
-                }
-
                 if (chunkLeft != null) {
 					int chunkX = this.leftChunkIndex * chunkLeft.length;
 					chunkCenterX = (chunkX + chunkLeft.length / 2.0) - game.getPlayer().getX();
-                    if (chunkCenterX >= gamePanel.getWidth() / (double) gamePanel.getBlockSize()) {
+                    if (chunkCenterX >= 0) {
                         saveChunk(chunkRight, this.leftChunkIndex + 2);
-
 						this.chunks[2] = this.chunks[1];
 						this.chunks[1] = this.chunks[0];
 
@@ -98,6 +86,20 @@ public class WorldManager {
 						this.chunks[0] = loadChunk(this.leftChunkIndex);
                     }
                 }
+
+				if (chunkRight != null) {
+					int chunkX = (this.leftChunkIndex + 2) * chunkRight.length;
+					chunkCenterX = (chunkX + chunkRight.length / 2.0) - game.getPlayer().getX();
+					if (chunkCenterX <= gamePanel.getWidth() / (double) gamePanel.getBlockSize()) {
+						saveChunk(chunkLeft, this.leftChunkIndex);
+
+						this.chunks[0] = this.chunks[1];
+						this.chunks[1] = this.chunks[2];
+
+						this.leftChunkIndex++;
+						this.chunks[2] = loadChunk(this.leftChunkIndex + 2);
+					}
+				}
 
                 int waitTime = (int) runner.getWaitTime();
                 try {
@@ -151,7 +153,7 @@ public class WorldManager {
 	}
 
 	private int[][] generateChunk(int index) {
-		int[][] mapToGenerate = new int[82][100];
+		int[][] mapToGenerate = new int[CHUNK_WIDTH][CHUNK_HEIGHT];
 
 		int newY = 0;
 
@@ -230,19 +232,13 @@ public class WorldManager {
 		return (int) (Math.random() * (max - min + 1) + min);
 	}
 
-	public void renderChunks(Graphics g, int width, int height, int blockWidth) {
+	public void renderChunks(Graphics2D g, double width, double height) {
 		for (int i = 0; i < this.chunks.length; i++) {
-			renderChunk(g, this.chunks[i], this.leftChunkIndex + i, width, height, blockWidth);
+			renderChunk(g, this.chunks[i], this.leftChunkIndex + i, width, height);
 		}
 	}
 
-	public void renderSelections(Graphics g, int width, Point mouseLocation) {
-		for (int i = 0; i < this.chunks.length; i++) {
-			renderSelection(g, this.chunks[i], this.leftChunkIndex + i, width, mouseLocation);
-		}
-	}
-
-	private void renderChunk(Graphics g, int[][] chunk, int chunkIndex, int width, int height, int blockSize) {
+	private void renderChunk(Graphics2D g, int[][] chunk, int chunkIndex, double width, double height) {
 		if (chunk == null) {
 			return;
 		}
@@ -250,45 +246,41 @@ public class WorldManager {
 		int chunkWidth = chunk.length;
 		int chunkX = chunkWidth * chunkIndex;
 
-		double screenWidth = width / (double) blockSize;
-
-		if (chunkX + chunkWidth < camera.getX() || chunkX > camera.getX() + screenWidth) {
+		if (chunkX + chunkWidth < camera.getX() || chunkX > camera.getX() + width) {
 			return;
 		}
 
 		int chunkHeight = chunk[0].length;
 		int chunkY = 0;
 
-		double screenHeight = height / (double) blockSize;
-
-		if (chunkY + chunkHeight < camera.getY() || chunkY > camera.getY() + screenHeight) {
+		if (chunkY + chunkHeight < camera.getY() || chunkY > camera.getY() + height) {
 			return;
 		}
 
 		int startingPointX = (int) Math.max(0, camera.getX() - chunkX);
 		int startingPointY = (int) Math.max(0, camera.getY() - chunkY);
 
-		for (int x = startingPointX; x < Math.min(camera.getX() + screenWidth - chunkX, chunk.length); x++) {
-			int renderX = (int) ((x + chunkX - camera.getX()) * blockSize);
+		for (int x = startingPointX; x < Math.min(Math.ceil(camera.getX()) + width - chunkX, chunk.length); x++) {
+			int renderX = (int) (x + chunkX - Math.floor(camera.getX()));
 
-			for (int y = startingPointY; y < Math.min(camera.getY() + screenHeight - chunkY, chunk[0].length); y++) {
-				int renderY = (int) ((y - camera.getY()) * blockSize);
+			for (int y = startingPointY; y < Math.min(Math.ceil(camera.getY()) + height - chunkY, chunk[0].length); y++) {
+				int renderY = (int) (y - Math.floor(camera.getY()));
 
 				if (chunk[x][y] != Blocks.AIR.getId()) {
 					Block block = this.blockRegistry.getBlock(chunk[x][y]);
-					g.drawImage(block.getTexture(), renderX, renderY, blockSize, blockSize, null);
+					g.drawImage(block.getTexture(), renderX, renderY, 1, 1, null);
 				}
 			}
 		}
 	}
 
-	public void renderSelection(Graphics g, int[][] chunk, int chunkIndex, int blockSize, Point mouseLocation) {
-		if (chunk == null) {
-			return;
-		}
-
+	public void renderSelection(Graphics2D g, int blockSize, Point mouseLocation) {
 		int blockX = (int) Math.floor(camera.getX() + mouseLocation.x / (double) blockSize);
 		int blockY = (int) Math.floor(camera.getY() + mouseLocation.y / (double) blockSize);
+
+		int chunkIndex = (int) Math.floor(blockX / (double) CHUNK_WIDTH);
+
+		int[][] chunk = this.chunks[chunkIndex - this.leftChunkIndex];
 
 		int chunkWidth = chunk.length;
 		int chunkX = chunkWidth * chunkIndex;
@@ -310,8 +302,9 @@ public class WorldManager {
 			return;
 		}
 
-		g.setColor(new Color(255, 255, 255, 50));
-		g.drawRect((int) ((blockX - camera.getX()) * blockSize), (int) ((blockY - camera.getY()) * blockSize), blockSize, blockSize);
+		g.setColor(new Color(0, 0, 0, 120));
+		g.setStroke(new BasicStroke(3.0F / blockSize));
+		g.drawRect((int) (blockX - Math.floor(camera.getX())), (int) (blockY - Math.floor(camera.getY())), 1, 1);
 	}
 
 	public BlockRegistry getBlockRegistry() {

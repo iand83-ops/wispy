@@ -49,21 +49,36 @@ public class GameRenderer extends RendererScreen {
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
 
-		g.drawImage(skyTexture, 0, 0, this.getWidth(), this.getHeight(), null);
+		Graphics2D graphics = (Graphics2D) g;
 
-		worldManager.renderChunks(g, this.getWidth(), this.getHeight(), blockSize);
+		graphics.drawImage(skyTexture, 0, 0, this.getWidth(), this.getHeight(), null);
 
-		int cameraX = (int) -((camera.getX() - player.getX()) * blockSize);
-		int cameraY = (int) -((camera.getY() - player.getY()) * blockSize);
+		double worldCameraX = camera.getX() - Math.floor(camera.getX());
+		double worldCameraY = camera.getY() - Math.floor(camera.getY());
 
-		g.translate(cameraX, cameraY);
-		player.render(g, blockSize);
-		g.translate(-cameraX, -cameraY);
+		double playerCameraX = camera.getX() - player.getX();
+		double playerCameraY = camera.getY() - player.getY();
+
+		graphics.scale(blockSize, blockSize);
+
+		graphics.translate(-worldCameraX, -worldCameraY);
+		worldManager.renderChunks(graphics, this.getWidth() / (double) blockSize, this.getHeight() / (double) blockSize);
+		graphics.translate(worldCameraX, worldCameraY);
+
+		graphics.translate(-playerCameraX, -playerCameraY);
+		player.render(graphics);
+		graphics.translate(playerCameraX, playerCameraY);
 
 		if (game.getMenu() != null) {
-			game.getMenu().render(g, this.getWidth(), this.getHeight());
+			graphics.scale(1.0 / blockSize, 1.0 / blockSize);
+
+			game.getMenu().render(graphics, this.getWidth(), this.getHeight());
 		} else {
-			worldManager.renderSelections(g, blockSize, game.getMouseLocation());
+			graphics.translate(-worldCameraX, -worldCameraY);
+			worldManager.renderSelection(graphics, blockSize, game.getMouseLocation());
+			graphics.translate(worldCameraX, worldCameraY);
+
+			graphics.scale(1.0 / blockSize, 1.0 / blockSize);
 		}
 	}
 

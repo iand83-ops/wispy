@@ -6,6 +6,7 @@ import fr.nicolas.wispy.game.render.Camera;
 import fr.nicolas.wispy.game.world.WorldManager;
 import fr.nicolas.wispy.ui.Window;
 import fr.nicolas.wispy.ui.menu.Menu;
+import fr.nicolas.wispy.ui.menu.PauseMenu;
 import fr.nicolas.wispy.ui.renderer_screens.GameRenderer;
 import fr.nicolas.wispy.ui.renderer_screens.MainMenuRenderer;
 import fr.nicolas.wispy.ui.renderer_screens.RendererScreen;
@@ -29,10 +30,12 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
     private Menu menu = null;
     private Point mouseLocation = new Point(0, 0);
 
-    private boolean keyDPressed = false;
-    private boolean keyQPressed = false;
-    private boolean keySpacePressed = false;
-    private boolean isEscapeMenuOpen = false;
+    private boolean rightKeyPressed = false;
+    private boolean leftKeyPressed = false;
+    private boolean jumpKeyPressed = false;
+    private boolean sprintKeyPressed = false;
+
+    private boolean running = true;
 
     public Game(Window window) {
         this.window = window;
@@ -51,28 +54,39 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
         this.menu = menu;
     }
 
+    public void closeMenu() {
+        this.menu = null;
+    }
+
+    public void stop() {
+        this.running = false;
+        System.exit(0);
+    }
+
     public void tick(double elapsedTime) {
         if (gameRenderer == null) {
             return;
         }
 
-        if (keyDPressed) {
+        if (rightKeyPressed) {
             player.setWalking(true);
             player.setFacingRight(true);
         }
 
-        if (keyQPressed) {
+        if (leftKeyPressed) {
             player.setWalking(true);
             player.setFacingRight(false);
         }
 
-        if (!keyQPressed && !keyDPressed) {
+        if (!leftKeyPressed && !rightKeyPressed) {
             player.setWalking(false);
         }
 
-        if (keySpacePressed) {
-            player.setJumping(true);
-            keySpacePressed = false;
+        player.setSprinting(sprintKeyPressed);
+
+        if (jumpKeyPressed) {
+            player.jump();
+            jumpKeyPressed = false;
         }
 
         player.tick(elapsedTime);
@@ -84,26 +98,38 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
     @Override
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            isEscapeMenuOpen = !isEscapeMenuOpen;
+            if (menu == null) {
+                this.openMenu(new PauseMenu());
+            } else {
+                this.closeMenu();
+            }
         }
 
-        if (e.getKeyCode() == KeyEvent.VK_D) {
-            keyDPressed = true;
-        } else if (e.getKeyCode() == KeyEvent.VK_Q) {
-            keyQPressed = true;
+        if (e.getKeyCode() == KeyEvent.VK_D || e.getKeyCode() == KeyEvent.VK_RIGHT) {
+            rightKeyPressed = true;
+        } else if (e.getKeyCode() == KeyEvent.VK_Q || e.getKeyCode() == KeyEvent.VK_LEFT) {
+            leftKeyPressed = true;
         }
 
-        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-            keySpacePressed = true;
+        if (e.getKeyCode() == KeyEvent.VK_CONTROL || e.getKeyCode() == KeyEvent.VK_SHIFT) {
+            sprintKeyPressed = true;
+        }
+
+        if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_UP) {
+            jumpKeyPressed = true;
         }
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_D) {
-            keyDPressed = false;
-        } else if (e.getKeyCode() == KeyEvent.VK_Q) {
-            keyQPressed = false;
+        if (e.getKeyCode() == KeyEvent.VK_D || e.getKeyCode() == KeyEvent.VK_RIGHT) {
+            rightKeyPressed = false;
+        } else if (e.getKeyCode() == KeyEvent.VK_Q || e.getKeyCode() == KeyEvent.VK_LEFT) {
+            leftKeyPressed = false;
+        }
+
+        if (e.getKeyCode() == KeyEvent.VK_CONTROL || e.getKeyCode() == KeyEvent.VK_SHIFT) {
+            sprintKeyPressed = false;
         }
     }
 
@@ -135,7 +161,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
         mouseLocation = e.getPoint();
     }
 
-    public void startGame() {
+    public void start() {
         worldManager.loadWorld("TestWorld");
         gameRenderer = new GameRenderer(window.getBounds(), this);
 
@@ -186,5 +212,13 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
 
     public Runner getRunner() {
         return this.runner;
+    }
+
+    public boolean isPaused() {
+        return this.menu != null && this.menu.doesPauseGame();
+    }
+
+    public boolean isRunning() {
+        return this.running;
     }
 }

@@ -63,6 +63,7 @@ public class Button extends JPanel {
 		this.size = newSize;
 	}
 
+	@Override
 	public void paintComponent(Graphics g) {
 		if (isHovered) {
 			g.drawImage(iconHovered, 0, 0, this.getWidth(), this.getHeight(), null);
