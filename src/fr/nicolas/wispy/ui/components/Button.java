@@ -1,4 +1,4 @@
-package fr.nicolas.wispy.panels.components.menu;
+package fr.nicolas.wispy.ui.components;
 
 import fr.nicolas.wispy.game.utils.Assets;
 
@@ -11,20 +11,20 @@ import java.awt.image.BufferedImage;
 
 import javax.swing.JPanel;
 
-public class WButton extends JPanel {
+public class Button extends JPanel {
 	private BufferedImage icon, iconHovered;
 	private Rectangle button;
 	private boolean isHovered = false;
 	private String text;
 	private int size = 40;
 
-	public WButton(String text, Rectangle bounds) {
+	public Button(String text, Rectangle bounds) {
 		this.text = text;
 		button = bounds;
 		loadImages("default");
 	}
 
-	public WButton(String text, String iconName, Rectangle bounds) {
+	public Button(String text, String iconName, Rectangle bounds) {
 		button = bounds;
 		loadImages(iconName);
 	}
@@ -40,22 +40,14 @@ public class WButton extends JPanel {
 
 	public boolean mouseClick(Point mouseLocation, boolean isRightClick) {
 		if (isRightClick) {
-			if (button.contains(mouseLocation)) {
-				return true;
-			} else {
-				return false;
-			}
+            return button.contains(mouseLocation);
 		} else {
 			return false;
 		}
 	}
 
 	public void mouseMove(Point mouseLocation) {
-		if (button.contains(mouseLocation)) {
-			isHovered = true;
-		} else {
-			isHovered = false;
-		}
+        isHovered = button.contains(mouseLocation);
 	}
 
 	public void setHovered(boolean isHovered) {

@@ -1,14 +1,14 @@
-package fr.nicolas.wispy.panels.components.menu;
+package fr.nicolas.wispy.ui.renderer_screens;
 
 import java.awt.Rectangle;
 
 import javax.swing.JPanel;
 
-public abstract class WPanel extends JPanel {
+public abstract class RendererScreen extends JPanel {
 
 	protected Rectangle frameBounds;
 
-	public WPanel(Rectangle frameBounds) {
+	public RendererScreen(Rectangle frameBounds) {
 		this.frameBounds = frameBounds;
 	}
 

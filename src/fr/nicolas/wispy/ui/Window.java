@@ -1,22 +1,19 @@
-package fr.nicolas.wispy.frames;
+package fr.nicolas.wispy.ui;
 
-import java.awt.Dimension;
+import fr.nicolas.wispy.game.Game;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 
-import javax.swing.JFrame;
+public class Window extends JFrame {
 
-import fr.nicolas.wispy.panels.GamePanel;
-import fr.nicolas.wispy.panels.MenuPanel;
-import fr.nicolas.wispy.panels.components.menu.WPanel;
-
-public class MainFrame extends JFrame {
-
-	private WPanel panel;
+	private final Game game;
 	public static final int INIT_WIDTH = 1250;
 	public static final int INIT_HEIGHT = 720;
 
-	public MainFrame() {
+	public Window() {
 		this.setTitle("Wispy");
 		this.setSize(INIT_WIDTH, INIT_HEIGHT);
 		this.setMinimumSize(new Dimension(INIT_WIDTH, INIT_HEIGHT));
@@ -24,11 +21,11 @@ public class MainFrame extends JFrame {
 		this.setResizable(true);
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		panel = new MenuPanel(this.getBounds(), this);
+		game = new Game(this);
 
 		this.addComponentListener(new ComponentListener() {
 			public void componentResized(ComponentEvent e) {
-				panel.setFrameBounds(getBounds());
+				game.getRendererScreen().setFrameBounds(getBounds());
 			}
 
 			public void componentHidden(ComponentEvent e) {
@@ -41,16 +38,9 @@ public class MainFrame extends JFrame {
 			}
 		});
 
-		this.setContentPane(panel);
+		this.setContentPane(game.getRendererScreen());
 
 		this.setVisible(true);
-	}
-
-	public void newGame() {
-		panel = new GamePanel(this.getBounds(), true);
-		this.setContentPane(panel);
-		this.validate();
-		panel.requestFocus();
 	}
 
 }

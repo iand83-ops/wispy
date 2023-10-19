@@ -1,16 +1,16 @@
 package fr.nicolas.wispy;
 
-import fr.nicolas.wispy.panels.GamePanel;
+import fr.nicolas.wispy.game.Game;
 
 public class Runner implements Runnable {
 
 	private boolean isRunning = false;
-	private final GamePanel gamePanel;
+	private final Game game;
 	private int maxFps = 125;
 	private long waitTime = 8;
 
-	public Runner(GamePanel gamePanel) {
-		this.gamePanel = gamePanel;
+	public Runner(Game game) {
+		this.game = game;
 		start();
 	}
 
@@ -20,27 +20,26 @@ public class Runner implements Runnable {
 	}
 
 	public void run() {
+		long startTime;
+		long delta;
+		maxFps = 1000 / maxFps;
+
+		long tickTime = System.nanoTime();
 		while (isRunning) {
-			long startTime, differenceTime;
-			maxFps = 1000 / maxFps;
+			startTime = System.nanoTime();
 
-			long tickTime = System.nanoTime();
-			while (isRunning) {
-				startTime = System.nanoTime();
+			game.tick((startTime - tickTime) / 1_000_000.0);
+			tickTime = System.nanoTime();
 
-				gamePanel.tick((startTime - tickTime) / 1_000_000.0);
-				tickTime = System.nanoTime();
+			game.getRendererScreen().repaint();
 
-				gamePanel.repaint();
-				
-				differenceTime = System.nanoTime() - startTime;
-				waitTime = Math.max(maxFps - differenceTime / 1_000_000, 8);
+			delta = System.nanoTime() - startTime;
+			waitTime = Math.max(maxFps - delta / 1_000_000, 8);
 
-				try {
-					Thread.sleep(waitTime);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+			try {
+				Thread.sleep(waitTime);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		}
 	}
