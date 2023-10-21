@@ -53,31 +53,25 @@ public class GameRenderer extends RendererScreen {
 
 		graphics.drawImage(skyTexture, 0, 0, this.getWidth(), this.getHeight(), null);
 
-		double worldCameraX = camera.getX() - Math.floor(camera.getX());
-		double worldCameraY = camera.getY() - Math.floor(camera.getY());
-
-		double playerCameraX = camera.getX() - player.getX();
-		double playerCameraY = camera.getY() - player.getY();
+		double worldCameraX = camera.getX();
+		double worldCameraY = camera.getY();
 
 		graphics.scale(blockSize, blockSize);
-
 		graphics.translate(-worldCameraX, -worldCameraY);
-		worldManager.renderChunks(graphics, this.getWidth() / (double) blockSize, this.getHeight() / (double) blockSize);
-		graphics.translate(worldCameraX, worldCameraY);
 
-		graphics.translate(-playerCameraX, -playerCameraY);
+		worldManager.renderChunks(graphics, this.getWidth() / (double) blockSize, this.getHeight() / (double) blockSize);
+
 		player.render(graphics);
-		graphics.translate(playerCameraX, playerCameraY);
 
 		if (game.getMenu() != null) {
+			graphics.translate(worldCameraX, worldCameraY);
 			graphics.scale(1.0 / blockSize, 1.0 / blockSize);
 
 			game.getMenu().render(graphics, this.getWidth(), this.getHeight());
 		} else {
-			graphics.translate(-worldCameraX, -worldCameraY);
 			worldManager.renderSelection(graphics, blockSize, game.getMouseLocation());
-			graphics.translate(worldCameraX, worldCameraY);
 
+			graphics.translate(worldCameraX, worldCameraY);
 			graphics.scale(1.0 / blockSize, 1.0 / blockSize);
 		}
 	}

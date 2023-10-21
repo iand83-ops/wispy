@@ -21,7 +21,7 @@ public class WorldManager {
 	private static final int CHUNK_HEIGHT = 100;
 
 	private int leftChunkIndex = -1;
-	private int[][][] chunks;
+	private final int[][][] chunks;
 
 	private File worldDir;
 	private final Game game;
@@ -260,15 +260,13 @@ public class WorldManager {
 		int startingPointX = (int) Math.max(0, camera.getX() - chunkX);
 		int startingPointY = (int) Math.max(0, camera.getY() - chunkY);
 
-		for (int x = startingPointX; x < Math.min(Math.ceil(camera.getX()) + width - chunkX, chunk.length); x++) {
-			int renderX = (int) (x + chunkX - Math.floor(camera.getX()));
+		for (int x = startingPointX; x < Math.min(camera.getBlockX() + 1 + width - chunkX, chunk.length); x++) {
+			int blockX = x + chunkX;
 
-			for (int y = startingPointY; y < Math.min(Math.ceil(camera.getY()) + height - chunkY, chunk[0].length); y++) {
-				int renderY = (int) (y - Math.floor(camera.getY()));
-
+			for (int y = startingPointY; y < Math.min(camera.getBlockY() + 1 + height - chunkY, chunk[0].length); y++) {
 				if (chunk[x][y] != Blocks.AIR.getId()) {
 					Block block = this.blockRegistry.getBlock(chunk[x][y]);
-					g.drawImage(block.getTexture(), renderX, renderY, 1, 1, null);
+					g.drawImage(block.getTexture(), blockX, y, 1, 1, null);
 				}
 			}
 		}
@@ -304,7 +302,7 @@ public class WorldManager {
 
 		g.setColor(new Color(0, 0, 0, 120));
 		g.setStroke(new BasicStroke(3.0F / blockSize));
-		g.drawRect((int) (blockX - Math.floor(camera.getX())), (int) (blockY - Math.floor(camera.getY())), 1, 1);
+		g.drawRect(blockX, blockY, 1, 1);
 	}
 
 	public BlockRegistry getBlockRegistry() {

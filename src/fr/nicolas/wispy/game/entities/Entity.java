@@ -6,12 +6,13 @@ import fr.nicolas.wispy.game.blocks.Blocks;
 import fr.nicolas.wispy.game.render.AABB;
 import fr.nicolas.wispy.game.render.Vector2D;
 import fr.nicolas.wispy.game.world.WorldManager;
+import fr.nicolas.wispy.ui.Rendering;
 import fr.nicolas.wispy.ui.renderer_screens.GameRenderer;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-public abstract class Entity {
+public abstract class Entity implements Rendering {
 
     protected final WorldManager worldManager;
 
@@ -69,9 +70,9 @@ public abstract class Entity {
         int frameIndex = (int) (((System.currentTimeMillis() - walkTime) % (frameTime * img.length)) / frameTime);
 
         if (isFacingRight) {
-            g.drawImage(img[frameIndex], 0, -height, width, height, null);
+            drawImage(g, img[frameIndex], x, y + -height, width, height);
         } else {
-            g.drawImage(img[frameIndex], width, -height, -width, height, null);
+            drawImage(g, img[frameIndex], x + width, y + -height, -width, height);
         }
     }
 

@@ -20,4 +20,12 @@ public class Camera {
     public double getY() {
         return this.y;
     }
+
+    public int getBlockX() {
+        return (int) Math.floor(this.x);
+    }
+
+    public int getBlockY() {
+        return (int) Math.floor(this.y);
+    }
 }
