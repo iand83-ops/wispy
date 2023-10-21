@@ -2,7 +2,6 @@ package fr.nicolas.wispy.game.entities;
 
 import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.BlockLocation;
-import fr.nicolas.wispy.game.blocks.Blocks;
 import fr.nicolas.wispy.game.render.AABB;
 import fr.nicolas.wispy.game.render.Vector2D;
 import fr.nicolas.wispy.game.world.WorldManager;
@@ -20,6 +19,9 @@ public abstract class Entity implements Rendering {
     protected BlockLocation groundCollision = null;
     protected BlockLocation leftCollision = null;
     protected BlockLocation rightCollision = null;
+
+    protected BlockLocation persistentLiquidCollision = null;
+    protected BlockLocation liquidCollision = null;
 
     protected boolean isWalking = false;
     protected boolean isSprinting = false;
@@ -49,9 +51,9 @@ public abstract class Entity implements Rendering {
     }
 
     public void render(Graphics2D g) {
-        if (isJumping) {
+        if (isJumping && liquidCollision == null) {
             drawTexture(g, jumpTextures);
-        } else if (groundCollision == null || !isWalking || rightCollision != null || leftCollision != null) {
+        } else if (!isWalking || (liquidCollision == null && (groundCollision == null || rightCollision != null || leftCollision != null))) {
             drawTexture(g, idleTextures);
         } else {
             drawTexture(g, walkTextures);
@@ -66,14 +68,53 @@ public abstract class Entity implements Rendering {
         int width = (int) this.width;
         int height = (int) this.height;
 
+        double boxWidth = getCollisionWidth();
+        double boxHeight = getCollisionHeight();
+
+        double widthOffset = (width - boxWidth) / 2.0;
+        double heightOffset = (height - boxHeight) / 2.0;
+
         int frameTime = isSprinting ? 100 : 160;
         int frameIndex = (int) (((System.currentTimeMillis() - walkTime) % (frameTime * img.length)) / frameTime);
 
+        boolean heightFacing = useHeightForFacing();
+
         if (isFacingRight) {
-            drawImage(g, img[frameIndex], x, y + -height, width, height);
+            drawImage(g, img[frameIndex], x - widthOffset, y - height + heightOffset, width, height);
         } else {
-            drawImage(g, img[frameIndex], x + width, y + -height, -width, height);
+            drawImage(g, img[frameIndex],
+                    x + (heightFacing ? 0 : width) - widthOffset,
+                    y - (heightFacing ? 0 : height) + heightOffset,
+                    (heightFacing ? width : -width),
+                    (heightFacing ? -height : height));
         }
+    }
+
+    @Override
+    public void drawImage(Graphics2D graphics, BufferedImage image, double x, double y, int width, int height) {
+        double rotation = getRotation();
+
+        graphics.rotate(rotation, x + width / 2.0, y + height / 2.0);
+        Rendering.super.drawImage(graphics, image, x, y, width, height);
+        graphics.rotate(-rotation, x + width / 2.0, y + height / 2.0);
+    }
+
+    public double getRotation() {
+        return 0;
+    }
+
+    public boolean useHeightForFacing() {
+        return false;
+    }
+
+    public double getMoveSpeed() {
+        double moveSpeed = 0.0035;
+
+        if (persistentLiquidCollision != null) {
+            moveSpeed *= 0.25;
+        }
+
+        return moveSpeed;
     }
 
     public void tick(double elapsedTime) {
@@ -82,7 +123,7 @@ public abstract class Entity implements Rendering {
         prevX = x;
         prevY = y;
 
-        double moveSpeed = elapsedTime * 0.0035;
+        double moveSpeed = elapsedTime * getMoveSpeed();
 
         // Walking
         if (isWalking) {
@@ -107,6 +148,10 @@ public abstract class Entity implements Rendering {
                 jumpTime = System.currentTimeMillis();
                 airTime = 0;
                 groundCollision = null;
+            } else if (liquidCollision != null) {
+                jumpTime = System.currentTimeMillis();
+                airTime = 0;
+                isJumping = false;
             } else if (groundCollision != null && System.currentTimeMillis() - jumpTime > 100) {
                 jumpTime = 0;
                 isJumping = false;
@@ -125,11 +170,19 @@ public abstract class Entity implements Rendering {
         }
 
         if (airTime != 0) {
-            y += Math.min(easeIn((System.currentTimeMillis() - airTime) / 500.0), 2.5) * moveSpeed * 5;
+            if (this.liquidCollision == null) {
+                y += Math.min(easeIn((System.currentTimeMillis() - airTime) / 500.0), 2.5) * moveSpeed * 5;
+            } else {
+                y += (0.5 + Math.min((System.currentTimeMillis() - airTime) / 1000.0, 0.5)) * moveSpeed;
+            }
         }
 
         if (jumpTime != 0) {
-            y -= moveSpeed * 3;
+            if (this.liquidCollision == null) {
+                y -= moveSpeed * 3;
+            } else {
+                y -= moveSpeed * 2;
+            }
         }
 
         validateMovementY();
@@ -145,8 +198,19 @@ public abstract class Entity implements Rendering {
         setRightCollision(null);
         setCeilingCollision(null);
 
+        BlockLocation liquidCollision = this.persistentLiquidCollision;
+        setLiquidCollision(null);
+
         for (int i = 0; i < this.worldManager.getChunks().length; i++) {
             computeCollision(this.worldManager.getChunks()[i], this.worldManager.getLeftChunkIndex() + i);
+        }
+
+        if (this.liquidCollision != null) {
+            setPersistentLiquidCollision(this.liquidCollision);
+        } else if (this.groundCollision == null && liquidCollision != null) {
+            setPersistentLiquidCollision(liquidCollision);
+        } else {
+            setPersistentLiquidCollision(null);
         }
     }
 
@@ -160,8 +224,8 @@ public abstract class Entity implements Rendering {
 
         double playerX = getX();
         double playerY = getY();
-        double playerWidth = getWidth();
-        double playerHeight = getHeight();
+        double playerWidth = getCollisionWidth();
+        double playerHeight = getCollisionHeight();
 
         if (playerX + playerWidth < chunkX || playerX > chunkX + chunkWidth) {
             return;
@@ -184,6 +248,7 @@ public abstract class Entity implements Rendering {
         AABB playerRightAABB = new AABB(new Vector2D(playerChunkX + playerWidth, playerChunkY - playerHeight + offset), new Vector2D(playerChunkX + playerWidth, playerChunkY - offset));
         AABB playerUpAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY - playerHeight), new Vector2D(playerChunkX + playerWidth - offset, playerChunkY - playerHeight));
         AABB playerDownAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY), new Vector2D(playerChunkX + playerWidth - offset, playerChunkY));
+        Vector2D playerCenterPoint = new Vector2D(playerChunkX + playerWidth / 2.0, playerChunkY - playerHeight / 2.0);
 
         for (int x = (int) -playerWidth; x <= playerWidth; x++) {
             for (int y = (int) -playerHeight; y <= playerHeight; y++) {
@@ -194,8 +259,6 @@ public abstract class Entity implements Rendering {
                     continue;
                 }
 
-                int blockID = chunk[blockX][blockY];
-
                 Block block = worldManager.getBlockRegistry().getBlock(chunk[blockX][blockY]);
 
                 double blockWidth = block.getWidth();
@@ -203,11 +266,18 @@ public abstract class Entity implements Rendering {
 
                 AABB blockAABB = new AABB(new Vector2D(blockX, blockY), new Vector2D(blockX + blockWidth, blockY + blockHeight));
 
-                if (blockID == Blocks.AIR.getId()) {
+                BlockLocation location = new BlockLocation(block, chunkX + blockX, chunkY + blockY);
+
+                if (block.isLiquid()) {
+                    if (blockAABB.contains(playerCenterPoint)) {
+                        setLiquidCollision(location);
+                    }
                     continue;
                 }
 
-                BlockLocation location = new BlockLocation(block, chunkX + blockX, chunkY + blockY);
+                if (!block.isSolid()) {
+                    continue;
+                }
 
                 if (groundCollision == null && blockAABB.intersects(playerDownAABB)) {
                     setGroundCollision(location);
@@ -229,49 +299,47 @@ public abstract class Entity implements Rendering {
     }
 
     public void validateMovementX() {
-        if (prevX != x) {
-            BlockLocation previousCollision = null;
-            do {
-                computeCollisions();
+        BlockLocation previousRightCollision = null;
+        BlockLocation previousLeftCollision = null;
+        do {
+            computeCollisions();
 
-                BlockLocation newCollision = x > prevX ? rightCollision : leftCollision;
+            if ((rightCollision == null || rightCollision.equals(previousRightCollision)) &&
+                    (leftCollision == null || leftCollision.equals(previousLeftCollision))) {
+                break;
+            }
 
-                if (newCollision == null || newCollision.equals(previousCollision)) {
-                    break;
-                }
+            if (rightCollision != null) {
+                x = rightCollision.getX() - getCollisionWidth();
+            } else {
+                x = leftCollision.getX() + 1;
+            }
 
-                if (x > prevX) {
-                    x = newCollision.getX() - width;
-                } else {
-                    x = newCollision.getX() + 1;
-                }
-
-                previousCollision = newCollision;
-            } while (true);
-        }
+            previousRightCollision = rightCollision;
+            previousLeftCollision = leftCollision;
+        } while (true);
     }
 
     public void validateMovementY() {
-        if (prevY != y) {
-            BlockLocation previousCollision = null;
-            do {
-                computeCollisions();
+        BlockLocation previousCollisionCeiling = null;
+        BlockLocation previousCollisionGround = null;
+        do {
+            computeCollisions();
 
-                BlockLocation newCollision = y > prevY ? groundCollision : ceilingCollision;
+            if ((groundCollision == null || groundCollision.equals(previousCollisionGround)) &&
+                    (ceilingCollision == null || ceilingCollision.equals(previousCollisionCeiling))) {
+                break;
+            }
 
-                if (newCollision == null || newCollision.equals(previousCollision)) {
-                    break;
-                }
+            if (groundCollision != null) {
+                y = groundCollision.getY();
+            } else {
+                y = ceilingCollision.getY() + 1;
+            }
 
-                if (y > prevY) {
-                    y = newCollision.getY();
-                } else {
-                    y = newCollision.getY() + height;
-                }
-
-                previousCollision = newCollision;
-            } while (true);
-        }
+            previousCollisionGround = groundCollision;
+            previousCollisionCeiling = ceilingCollision;
+        } while (true);
     }
 
     public void setGroundCollision(BlockLocation isFalling) {
@@ -290,6 +358,14 @@ public abstract class Entity implements Rendering {
         this.ceilingCollision = ceilingCollision;
     }
 
+    public void setLiquidCollision(BlockLocation liquidCollision) {
+        this.liquidCollision = liquidCollision;
+    }
+
+    public void setPersistentLiquidCollision(BlockLocation persistentLiquidCollision) {
+        this.persistentLiquidCollision = persistentLiquidCollision;
+    }
+
     public void setWalking(boolean isWalking) {
         this.isWalking = isWalking;
     }
@@ -303,7 +379,7 @@ public abstract class Entity implements Rendering {
     }
 
     public void jump() {
-        if (this.groundCollision != null) {
+        if (this.groundCollision != null || this.liquidCollision != null) {
             this.isJumping = true;
         }
     }
@@ -326,6 +402,14 @@ public abstract class Entity implements Rendering {
     }
 
     public double getHeight() {
+        return this.height;
+    }
+
+    public double getCollisionWidth() {
+        return this.width;
+    }
+
+    public double getCollisionHeight() {
         return this.height;
     }
 

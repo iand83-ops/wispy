@@ -86,7 +86,6 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
 
         if (jumpKeyPressed) {
             player.jump();
-            jumpKeyPressed = false;
         }
 
         player.tick(elapsedTime);
@@ -130,6 +129,10 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
 
         if (e.getKeyCode() == KeyEvent.VK_CONTROL || e.getKeyCode() == KeyEvent.VK_SHIFT) {
             sprintKeyPressed = false;
+        }
+
+        if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_UP) {
+            jumpKeyPressed = false;
         }
     }
 

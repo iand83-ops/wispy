@@ -7,13 +7,23 @@ import java.awt.image.BufferedImage;
 public class Block {
 
 	private final Blocks type;
+	private final Materials material;
 	private final double width;
 	private final double height;
 
 	private final BufferedImage texture;
 
-	public Block(Blocks type, double width, double height) {
+	public Block(Blocks type) {
+		this(type, Materials.SOLID, 1, 1);
+	}
+
+	public Block(Blocks type, Materials material) {
+		this(type, material, 1, 1);
+	}
+
+	public Block(Blocks type, Materials material, double width, double height) {
 		this.type = type;
+		this.material = material;
 		this.width = width;
 		this.height = height;
 
@@ -22,6 +32,10 @@ public class Block {
 
 	public Blocks getType() {
 		return this.type;
+	}
+
+	public Materials getMaterial() {
+		return this.material;
 	}
 
 	public double getWidth() {
@@ -34,6 +48,18 @@ public class Block {
 
 	public BufferedImage getTexture() {
 		return this.texture;
+	}
+
+	public boolean isSolid() {
+		return this.material == Materials.SOLID || this.material == Materials.SOLID_GRAVITY;
+	}
+
+	public boolean isSolidOrLiquid() {
+		return this.material != Materials.NON_SOLID;
+	}
+
+	public boolean isLiquid() {
+		return this.material == Materials.LIQUID;
 	}
 
 }

@@ -6,7 +6,8 @@ public enum Blocks {
     STONE,
     DIRT,
     GRASS,
-    SAND;
+    SAND,
+    WATER;
 
     private int id = 0;
 

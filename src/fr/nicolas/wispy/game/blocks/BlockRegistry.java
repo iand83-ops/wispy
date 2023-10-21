@@ -5,11 +5,13 @@ public class BlockRegistry {
     private final Block[] blocks = new Block[256];
 
     public BlockRegistry() {
-        register(0, new Block(Blocks.AIR, 1.0, 1.0));
-        register(1, new Block(Blocks.STONE, 1.0, 1.0));
-        register(2, new Block(Blocks.DIRT, 1.0, 1.0));
-        register(3, new Block(Blocks.GRASS, 1.0, 1.0));
-        register(4, new Block(Blocks.SAND, 1.0, 1.0));
+        register(0, new Block(Blocks.AIR, Materials.NON_SOLID));
+        register(1, new Block(Blocks.STONE));
+        register(2, new Block(Blocks.DIRT));
+        register(3, new Block(Blocks.GRASS));
+        register(4, new Block(Blocks.SAND, Materials.SOLID_GRAVITY));
+
+        register(5, new Block(Blocks.WATER, Materials.LIQUID));
     }
 
     public void register(int id, Block block) {

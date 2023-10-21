@@ -60,7 +60,7 @@ public class WorldManager {
 
 	public double getPlayerSpawnY() {
 		int y = 0;
-		while (this.chunks[0][0][y] == Blocks.AIR.getId()) {
+		while (!this.blockRegistry.getBlock(this.chunks[0][0][y]).isSolidOrLiquid()) {
 			y++;
 		}
 		return y;
@@ -154,6 +154,15 @@ public class WorldManager {
 
 	private int[][] generateChunk(int index) {
 		int[][] mapToGenerate = new int[CHUNK_WIDTH][CHUNK_HEIGHT];
+
+		// fill with water at level 10
+		for (int x = 0; x < mapToGenerate.length; x++) {
+			for (int y = 0; y < mapToGenerate[0].length; y++) {
+				if (y > 10) {
+					mapToGenerate[x][y] = Blocks.WATER.getId();
+				}
+			}
+		}
 
 		int newY = 0;
 
