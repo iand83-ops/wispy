@@ -36,9 +36,13 @@ public abstract class Entity implements Rendering {
     protected final double width;
     protected final double height;
 
+    protected double rotation;
+
     protected long walkTime = 0;
     protected long jumpTime = 0;
     protected long airTime = 0;
+    protected long liquidTime = 0;
+    protected long outOfLiquidTime = 0;
 
     private BufferedImage[] idleTextures = new BufferedImage[0];
     private BufferedImage[] walkTextures = new BufferedImage[0];
@@ -100,7 +104,7 @@ public abstract class Entity implements Rendering {
     }
 
     public double getRotation() {
-        return 0;
+        return this.rotation;
     }
 
     public boolean useHeightForFacing() {
@@ -193,6 +197,9 @@ public abstract class Entity implements Rendering {
     }
 
     public void computeCollisions() {
+        double playerWidth = getCollisionWidth();
+        double playerHeight = getCollisionHeight();
+
         setGroundCollision(null);
         setLeftCollision(null);
         setRightCollision(null);
@@ -202,7 +209,23 @@ public abstract class Entity implements Rendering {
         setLiquidCollision(null);
 
         for (int i = 0; i < this.worldManager.getChunks().length; i++) {
-            computeCollision(this.worldManager.getChunks()[i], this.worldManager.getLeftChunkIndex() + i);
+            computeCollision(this.worldManager.getChunks()[i], this.worldManager.getLeftChunkIndex() + i, playerWidth, playerHeight);
+        }
+
+        if (this.liquidCollision != null) {
+            if (this.liquidTime == 0) {
+                this.liquidTime = System.currentTimeMillis();
+            }
+        } else {
+            this.liquidTime = 0;
+        }
+
+        if (this.persistentLiquidCollision != null && this.liquidCollision == null) {
+            if (this.outOfLiquidTime == 0) {
+                this.outOfLiquidTime = System.currentTimeMillis();
+            }
+        } else {
+            this.outOfLiquidTime = 0;
         }
 
         if (this.liquidCollision != null) {
@@ -214,7 +237,7 @@ public abstract class Entity implements Rendering {
         }
     }
 
-    private void computeCollision(int[][] chunk, int chunkIndex) {
+    private void computeCollision(int[][] chunk, int chunkIndex, double playerWidth, double playerHeight) {
         if (chunk == null) {
             return;
         }
@@ -224,8 +247,6 @@ public abstract class Entity implements Rendering {
 
         double playerX = getX();
         double playerY = getY();
-        double playerWidth = getCollisionWidth();
-        double playerHeight = getCollisionHeight();
 
         if (playerX + playerWidth < chunkX || playerX > chunkX + chunkWidth) {
             return;
@@ -378,8 +399,14 @@ public abstract class Entity implements Rendering {
         this.isFacingRight = isToRight;
     }
 
+    public boolean canGroundJump() {
+        return this.groundCollision != null && this.persistentLiquidCollision == null;
+    }
+
     public void jump() {
-        if (this.groundCollision != null || this.liquidCollision != null) {
+        if (canGroundJump() ||
+                (this.liquidCollision != null && System.currentTimeMillis() - this.liquidTime > 300) ||
+                (this.persistentLiquidCollision != null && System.currentTimeMillis() - this.outOfLiquidTime < 100)) {
             this.isJumping = true;
         }
     }

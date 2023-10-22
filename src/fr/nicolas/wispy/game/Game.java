@@ -25,7 +25,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
     private final Player player;
     private final Camera camera;
 
-    private Runner runner;
+    private final Runner runner;
 
     private Menu menu = null;
     private Point mouseLocation = new Point(0, 0);

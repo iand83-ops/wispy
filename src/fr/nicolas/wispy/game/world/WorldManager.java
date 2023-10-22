@@ -126,7 +126,7 @@ public class WorldManager {
 		File chunkFile = new File(worldDir, index + ".chunk");
 
 		if (chunkFile.isFile()) {
-			return loadChunkFromFile(chunkFile);
+			return loadChunkFromFile(chunkFile, index);
 		}
 
 		int[][] chunk = generateChunk(index);
@@ -134,21 +134,16 @@ public class WorldManager {
 		return chunk;
 	}
 
-	private int[][] loadChunkFromFile(File chunkFile) {
-		int[][] loadedMap = null;
-		try {
-			ObjectInputStream objectInputS = new ObjectInputStream(Files.newInputStream(chunkFile.toPath()));
+	private int[][] loadChunkFromFile(File chunkFile, int index) {
+		int[][] loadedMap;
 
-			try {
-				loadedMap = (int[][]) objectInputS.readObject();
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
-
-			objectInputS.close();
-		} catch (IOException e) {
+		try (ObjectInputStream objectInputS = new ObjectInputStream(Files.newInputStream(chunkFile.toPath()))) {
+			loadedMap = (int[][]) objectInputS.readObject();
+		} catch (Exception e) {
+			loadedMap = generateChunk(index);
 			e.printStackTrace();
 		}
+
 		return loadedMap;
 	}
 
@@ -286,6 +281,10 @@ public class WorldManager {
 		int blockY = (int) Math.floor(camera.getY() + mouseLocation.y / (double) blockSize);
 
 		int chunkIndex = (int) Math.floor(blockX / (double) CHUNK_WIDTH);
+
+		if (chunkIndex < this.leftChunkIndex || chunkIndex >= this.leftChunkIndex + this.chunks.length) {
+			return;
+		}
 
 		int[][] chunk = this.chunks[chunkIndex - this.leftChunkIndex];
 
