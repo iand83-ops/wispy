@@ -4,7 +4,9 @@ import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.BlockLocation;
 import fr.nicolas.wispy.game.render.AABB;
 import fr.nicolas.wispy.game.render.Vector2D;
+import fr.nicolas.wispy.game.utils.MathUtils;
 import fr.nicolas.wispy.game.world.WorldManager;
+import fr.nicolas.wispy.game.world.chunks.Chunk;
 import fr.nicolas.wispy.ui.Rendering;
 import fr.nicolas.wispy.ui.renderer_screens.GameRenderer;
 
@@ -22,6 +24,8 @@ public abstract class Entity implements Rendering {
 
     protected BlockLocation persistentLiquidCollision = null;
     protected BlockLocation liquidCollision = null;
+
+    private AABB boundingBox = new AABB(new Vector2D(0, 0), new Vector2D(0, 0));
 
     protected boolean isWalking = false;
     protected boolean isSprinting = false;
@@ -175,7 +179,7 @@ public abstract class Entity implements Rendering {
 
         if (airTime != 0) {
             if (this.liquidCollision == null) {
-                y += Math.min(easeIn((System.currentTimeMillis() - airTime) / 500.0), 2.5) * moveSpeed * 5;
+                y += Math.min(MathUtils.easeIn((System.currentTimeMillis() - airTime) / 500.0), 2.5) * moveSpeed * 5;
             } else {
                 y += (0.5 + Math.min((System.currentTimeMillis() - airTime) / 1000.0, 0.5)) * moveSpeed;
             }
@@ -190,10 +194,6 @@ public abstract class Entity implements Rendering {
         }
 
         validateMovementY();
-    }
-
-    public static double easeIn(double t) {
-        return t * t;
     }
 
     public void computeCollisions() {
@@ -237,12 +237,12 @@ public abstract class Entity implements Rendering {
         }
     }
 
-    private void computeCollision(int[][] chunk, int chunkIndex, double playerWidth, double playerHeight) {
-        if (chunk == null) {
+    private void computeCollision(Chunk chunk, int chunkIndex, double playerWidth, double playerHeight) {
+        if (chunk == null || chunk.getBlocks() == null) {
             return;
         }
 
-        int chunkWidth = chunk.length;
+        int chunkWidth = chunk.getWidth();
         int chunkX = chunkWidth * chunkIndex;
 
         double playerX = getX();
@@ -253,7 +253,7 @@ public abstract class Entity implements Rendering {
         }
 
         int chunkY = 0;
-        int chunkHeight = chunk[0].length;
+        int chunkHeight = chunk.getHeight();
 
         if (playerY + playerHeight < 0 || playerY > chunkHeight) {
             setGroundCollision(null);
@@ -264,12 +264,31 @@ public abstract class Entity implements Rendering {
         double playerChunkY = playerY - chunkY;
 
         double offset = 1.0 / GameRenderer.BLOCK_RESOLUTION;
+        double rotation = getRotation() - (useHeightForFacing() ? Math.toRadians(90) : 0);
 
-        AABB playerLeftAABB = new AABB(new Vector2D(playerChunkX, playerChunkY - playerHeight + offset), new Vector2D(playerChunkX, playerChunkY - offset));
-        AABB playerRightAABB = new AABB(new Vector2D(playerChunkX + playerWidth, playerChunkY - playerHeight + offset), new Vector2D(playerChunkX + playerWidth, playerChunkY - offset));
-        AABB playerUpAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY - playerHeight), new Vector2D(playerChunkX + playerWidth - offset, playerChunkY - playerHeight));
-        AABB playerDownAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY), new Vector2D(playerChunkX + playerWidth - offset, playerChunkY));
         Vector2D playerCenterPoint = new Vector2D(playerChunkX + playerWidth / 2.0, playerChunkY - playerHeight / 2.0);
+
+        Vector2D topLeft = new Vector2D(playerChunkX, playerChunkY - playerHeight);
+        Vector2D topRight = new Vector2D(playerChunkX + playerWidth, playerChunkY - playerHeight);
+        Vector2D bottomLeft = new Vector2D(playerChunkX, playerChunkY);
+        Vector2D bottomRight = new Vector2D(playerChunkX + playerWidth, playerChunkY);
+
+        Vector2D rotatedTopLeft = MathUtils.rotatePoint(topLeft, playerCenterPoint, rotation);
+        Vector2D rotatedTopRight = MathUtils.rotatePoint(topRight, playerCenterPoint, rotation);
+        Vector2D rotatedBottomLeft = MathUtils.rotatePoint(bottomLeft, playerCenterPoint, rotation);
+        Vector2D rotatedBottomRight = MathUtils.rotatePoint(bottomRight, playerCenterPoint, rotation);
+
+        double minX = Math.min(Math.min(rotatedTopLeft.x, rotatedTopRight.x), Math.min(rotatedBottomLeft.x, rotatedBottomRight.x));
+        double maxX = Math.max(Math.max(rotatedTopLeft.x, rotatedTopRight.x), Math.max(rotatedBottomLeft.x, rotatedBottomRight.x));
+        double minY = Math.min(Math.min(rotatedTopLeft.y, rotatedTopRight.y), Math.min(rotatedBottomLeft.y, rotatedBottomRight.y));
+        double maxY = Math.max(Math.max(rotatedTopLeft.y, rotatedTopRight.y), Math.max(rotatedBottomLeft.y, rotatedBottomRight.y));
+
+        this.boundingBox = new AABB(new Vector2D(minX, minY), new Vector2D(maxX, maxY));
+
+        AABB playerLeftAABB = new AABB(new Vector2D(minX, minY + offset), new Vector2D(minX, maxY - offset));
+        AABB playerRightAABB = new AABB(new Vector2D(maxX, minY + offset), new Vector2D(maxX, maxY - offset));
+        AABB playerUpAABB = new AABB(new Vector2D(minX + offset, minY), new Vector2D(maxX - offset, minY));
+        AABB playerDownAABB = new AABB(new Vector2D(minX + offset, maxY), new Vector2D(maxX - offset, maxY));
 
         for (int x = (int) -playerWidth; x <= playerWidth; x++) {
             for (int y = (int) -playerHeight; y <= playerHeight; y++) {
@@ -280,7 +299,7 @@ public abstract class Entity implements Rendering {
                     continue;
                 }
 
-                Block block = worldManager.getBlockRegistry().getBlock(chunk[blockX][blockY]);
+                Block block = chunk.getBlock(blockX, blockY);
 
                 double blockWidth = block.getWidth();
                 double blockHeight = block.getHeight();
@@ -322,7 +341,7 @@ public abstract class Entity implements Rendering {
     public void validateMovementX() {
         BlockLocation previousRightCollision = null;
         BlockLocation previousLeftCollision = null;
-        do {
+        for (int i = 0; i < 20; i++) {
             computeCollisions();
 
             if ((rightCollision == null || rightCollision.equals(previousRightCollision)) &&
@@ -330,21 +349,23 @@ public abstract class Entity implements Rendering {
                 break;
             }
 
+            double boundingBoxWidth = boundingBox.getMax().x - boundingBox.getMin().x;
+
             if (rightCollision != null) {
-                x = rightCollision.getX() - getCollisionWidth();
+                x = Math.min(x, rightCollision.getX() - (boundingBoxWidth - 1.0 / GameRenderer.BLOCK_RESOLUTION));
             } else {
-                x = leftCollision.getX() + 1;
+                x = Math.max(x, leftCollision.getX() + leftCollision.getBlock().getHeight() + (boundingBoxWidth - getCollisionWidth()));
             }
 
             previousRightCollision = rightCollision;
             previousLeftCollision = leftCollision;
-        } while (true);
+        }
     }
 
     public void validateMovementY() {
         BlockLocation previousCollisionCeiling = null;
         BlockLocation previousCollisionGround = null;
-        do {
+        for (int i = 0; i < 20; i++) {
             computeCollisions();
 
             if ((groundCollision == null || groundCollision.equals(previousCollisionGround)) &&
@@ -352,15 +373,17 @@ public abstract class Entity implements Rendering {
                 break;
             }
 
+            double boundingBoxHeight = boundingBox.getMax().y - boundingBox.getMin().y;
+
             if (groundCollision != null) {
-                y = groundCollision.getY();
+                y = Math.min(y, groundCollision.getY());
             } else {
-                y = ceilingCollision.getY() + 1;
+                y = Math.max(y, ceilingCollision.getY() + ceilingCollision.getBlock().getHeight() + (boundingBoxHeight - getCollisionHeight()));
             }
 
             previousCollisionGround = groundCollision;
             previousCollisionCeiling = ceilingCollision;
-        } while (true);
+        }
     }
 
     public void setGroundCollision(BlockLocation isFalling) {
@@ -385,6 +408,10 @@ public abstract class Entity implements Rendering {
 
     public void setPersistentLiquidCollision(BlockLocation persistentLiquidCollision) {
         this.persistentLiquidCollision = persistentLiquidCollision;
+    }
+
+    public AABB getBoundingBox() {
+        return this.boundingBox;
     }
 
     public void setWalking(boolean isWalking) {

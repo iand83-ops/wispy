@@ -42,13 +42,13 @@ public class Player extends Entity {
 
             double delta = Math.toRadians(elapsedTime * getMoveSpeed() * 20);
 
-            if (prevY > y) {
+            if (prevY > y && leftCollision == null && rightCollision == null) {
                 if (isFacingRight ? rotation > degree90 : rotation < degree90) {
                     delta *= 4;
                 }
 
                 rotation += delta * (isFacingRight ? -1 : 1);
-            } else if (prevY < y) {
+            } else if (prevY < y && leftCollision == null && rightCollision == null) {
                 if (isFacingRight ? rotation < degree90 : rotation > degree90) {
                     delta *= 4;
                 }
