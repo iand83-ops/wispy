@@ -10,12 +10,21 @@ public enum Blocks {
     WATER;
 
     private int id = 0;
+    private Block block;
 
     void setId(int id) {
         this.id = id;
     }
 
+    void setBlock(Block block) {
+        this.block = block;
+    }
+
     public int getId() {
         return this.id;
+    }
+
+    public Block getBlock() {
+        return this.block;
     }
 }

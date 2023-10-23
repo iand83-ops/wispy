@@ -62,4 +62,8 @@ public class Block {
 		return this.material == Materials.LIQUID;
 	}
 
+	public int getId() {
+		return this.type.getId();
+	}
+
 }

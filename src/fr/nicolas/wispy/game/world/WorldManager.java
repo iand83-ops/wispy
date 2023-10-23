@@ -6,6 +6,8 @@ import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.BlockRegistry;
 import fr.nicolas.wispy.game.blocks.Blocks;
 import fr.nicolas.wispy.game.render.Camera;
+import fr.nicolas.wispy.game.world.chunks.Chunk;
+import fr.nicolas.wispy.game.world.worldgen.WorldGeneration;
 import fr.nicolas.wispy.ui.renderer_screens.GameRenderer;
 
 import java.awt.*;
@@ -17,30 +19,26 @@ import java.nio.file.Files;
 
 public class WorldManager {
 
-	private static final int CHUNK_WIDTH = 82;
-	private static final int CHUNK_HEIGHT = 100;
+	public static final int CHUNK_WIDTH = 82;
+	public static final int CHUNK_HEIGHT = 100;
 
 	private int leftChunkIndex = -1;
-	private final int[][][] chunks;
+	private final Chunk[] chunks;
+	private final Dimensions dimension = Dimensions.OVERWORLD;
 
 	private File worldDir;
 	private final Game game;
 	private final Camera camera;
 
-	// Random generation variables
-	private int state = 0;
-	private int changeStateNum = 5;
-	private int currentNum = 0;
-	private int lastY = 10;
-	private int lastState = 0;
-
 	private final BlockRegistry blockRegistry;
+	private final WorldGeneration worldGeneration;
 
 	public WorldManager(Game game, Camera camera) {
 		this.game = game;
 		this.camera = camera;
 		this.blockRegistry = new BlockRegistry();
-		this.chunks = new int[3][][];
+		this.chunks = new Chunk[3];
+		this.worldGeneration = new WorldGeneration(this);
 	}
 
 	public void loadWorld(String worldName) {
@@ -60,7 +58,7 @@ public class WorldManager {
 
 	public double getPlayerSpawnY() {
 		int y = 0;
-		while (!this.blockRegistry.getBlock(this.chunks[0][0][y]).isSolidOrLiquid()) {
+		while (!this.chunks[0].getBlock(0, y).isSolidOrLiquid()) {
 			y++;
 		}
 		return y;
@@ -71,12 +69,12 @@ public class WorldManager {
             while (true) {
                 double chunkCenterX;
 
-				int[][] chunkLeft = this.chunks[0];
-				int[][] chunkRight = this.chunks[2];
+				Chunk chunkLeft = this.chunks[0];
+				Chunk chunkRight = this.chunks[2];
 
                 if (chunkLeft != null) {
-					int chunkX = this.leftChunkIndex * chunkLeft.length;
-					chunkCenterX = (chunkX + chunkLeft.length / 2.0) - game.getPlayer().getX();
+					int chunkX = this.leftChunkIndex * chunkLeft.getBlocks().length;
+					chunkCenterX = (chunkX + chunkLeft.getBlocks().length / 2.0) - game.getPlayer().getX();
                     if (chunkCenterX >= 0) {
                         saveChunk(chunkRight, this.leftChunkIndex + 2);
 						this.chunks[2] = this.chunks[1];
@@ -88,8 +86,8 @@ public class WorldManager {
                 }
 
 				if (chunkRight != null) {
-					int chunkX = (this.leftChunkIndex + 2) * chunkRight.length;
-					chunkCenterX = (chunkX + chunkRight.length / 2.0) - game.getPlayer().getX();
+					int chunkX = (this.leftChunkIndex + 2) * chunkRight.getBlocks().length;
+					chunkCenterX = (chunkX + chunkRight.getBlocks().length / 2.0) - game.getPlayer().getX();
 					if (chunkCenterX <= gamePanel.getWidth() / (double) gamePanel.getBlockSize()) {
 						saveChunk(chunkLeft, this.leftChunkIndex);
 
@@ -112,128 +110,51 @@ public class WorldManager {
 		loadNextMap.start();
 	}
 
-	private void saveChunk(int[][] mapToSave, int num) {
+	private void saveChunk(Chunk chunk, int index) {
 		try {
-			ObjectOutputStream objectOutputS = new ObjectOutputStream(Files.newOutputStream(new File(this.worldDir, num + ".chunk").toPath()));
-			objectOutputS.writeObject(mapToSave);
+			File dimensionFolder = new File(worldDir, "" + dimension.getId());
+
+			if (!dimensionFolder.isDirectory()) {
+				dimensionFolder.mkdirs();
+			}
+
+			ObjectOutputStream objectOutputS = new ObjectOutputStream(Files.newOutputStream(new File(dimensionFolder, index + ".chunk").toPath()));
+			objectOutputS.writeObject(chunk.getBlocks());
 			objectOutputS.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private int[][] loadChunk(int index) {
-		File chunkFile = new File(worldDir, index + ".chunk");
+	private Chunk loadChunk(int index) {
+		File dimensionFolder = new File(worldDir, "" + dimension.getId());
+		File chunkFile = new File(dimensionFolder, index + ".chunk");
 
 		if (chunkFile.isFile()) {
-			return loadChunkFromFile(chunkFile, index);
+			return loadChunkFromFile(index);
 		}
 
-		int[][] chunk = generateChunk(index);
+		Chunk chunk = worldGeneration.generateChunk(index);
 		saveChunk(chunk, index);
 		return chunk;
 	}
 
-	private int[][] loadChunkFromFile(File chunkFile, int index) {
-		int[][] loadedMap;
+	private Chunk loadChunkFromFile(int index) {
+		File dimensionFolder = new File(worldDir, "" + dimension.getId());
+		File chunkFile = new File(dimensionFolder, index + ".chunk");
+
+		Chunk chunk;
 
 		try (ObjectInputStream objectInputS = new ObjectInputStream(Files.newInputStream(chunkFile.toPath()))) {
-			loadedMap = (int[][]) objectInputS.readObject();
+			chunk = new Chunk(this);
+			chunk.setBlocks((int[][]) objectInputS.readObject());
 		} catch (Exception e) {
-			loadedMap = generateChunk(index);
 			e.printStackTrace();
+
+			chunk = worldGeneration.generateChunk(index);
 		}
 
-		return loadedMap;
-	}
-
-	private int[][] generateChunk(int index) {
-		int[][] mapToGenerate = new int[CHUNK_WIDTH][CHUNK_HEIGHT];
-
-		// fill with water at level 10
-		for (int x = 0; x < mapToGenerate.length; x++) {
-			for (int y = 0; y < mapToGenerate[0].length; y++) {
-				if (y > 10) {
-					mapToGenerate[x][y] = Blocks.WATER.getId();
-				}
-			}
-		}
-
-		int newY = 0;
-
-		for (int x = 0; x < mapToGenerate.length; x++) {
-			// TODO: Algo de génération
-			// TODO: Actuellement: génération map par map au lieu de l'ensemble des maps
-			// d'un coup ... (problèmes si grottes, montagnes, bâtiments ...)
-
-			if (random(1, 2) == 1) {
-				if (state == 0) {
-					newY = random(lastY - 1, lastY + 1);
-				} else if (state == 1) {
-					if (random(1, 3) == 1) {
-						newY = random(lastY, lastY + 3);
-					} else {
-						newY = random(lastY, lastY + 2);
-					}
-				} else if (state == 2) {
-					if (random(1, 3) == 1) {
-						newY = random(lastY, lastY - 3);
-					} else {
-						newY = random(lastY, lastY - 2);
-					}
-				}
-			} else {
-				newY = lastY;
-			}
-
-			if (currentNum == changeStateNum) {
-				currentNum = 0;
-				changeStateNum = random(3, 7);
-
-				if (random(1, 3) == 1) {
-					state = random(1, 2);
-				} else {
-					state = 0;
-				}
-
-				if (lastState == state) {
-					if (random(1, 3) != 1) {
-						if (state == 1) {
-							state = 2;
-						} else if (state == 2) {
-							state = 1;
-						}
-					}
-				}
-
-				lastState = state;
-			} else {
-				currentNum++;
-			}
-
-			if (newY > 25) { // Profondeur y max
-				newY = 25;
-			} else if (newY < 10) { // Hauteur y max
-				newY = 10;
-			}
-
-			lastY = newY;
-			mapToGenerate[x][newY] = Blocks.GRASS.getId();
-
-			for (int y = newY + 1; y < mapToGenerate[0].length; y++) {
-				if (y < newY + 3) {
-					mapToGenerate[x][y] = Blocks.DIRT.getId();
-				} else {
-					mapToGenerate[x][y] = Blocks.STONE.getId();
-				}
-			}
-		}
-
-		return mapToGenerate;
-	}
-
-	private int random(int min, int max) {
-		return (int) (Math.random() * (max - min + 1) + min);
+		return chunk;
 	}
 
 	public void renderChunks(Graphics2D g, double width, double height) {
@@ -242,19 +163,19 @@ public class WorldManager {
 		}
 	}
 
-	private void renderChunk(Graphics2D g, int[][] chunk, int chunkIndex, double width, double height) {
-		if (chunk == null) {
+	private void renderChunk(Graphics2D g, Chunk chunk, int chunkIndex, double width, double height) {
+		if (chunk == null || chunk.getBlocks() == null) {
 			return;
 		}
 
-		int chunkWidth = chunk.length;
+		int chunkWidth = chunk.getWidth();
 		int chunkX = chunkWidth * chunkIndex;
 
 		if (chunkX + chunkWidth < camera.getX() || chunkX > camera.getX() + width) {
 			return;
 		}
 
-		int chunkHeight = chunk[0].length;
+		int chunkHeight = chunk.getHeight();
 		int chunkY = 0;
 
 		if (chunkY + chunkHeight < camera.getY() || chunkY > camera.getY() + height) {
@@ -264,12 +185,12 @@ public class WorldManager {
 		int startingPointX = (int) Math.max(0, camera.getX() - chunkX);
 		int startingPointY = (int) Math.max(0, camera.getY() - chunkY);
 
-		for (int x = startingPointX; x < Math.min(camera.getBlockX() + 1 + width - chunkX, chunk.length); x++) {
+		for (int x = startingPointX; x < Math.min(camera.getBlockX() + 1 + width - chunkX, chunkWidth); x++) {
 			int blockX = x + chunkX;
 
-			for (int y = startingPointY; y < Math.min(camera.getBlockY() + 1 + height - chunkY, chunk[0].length); y++) {
-				if (chunk[x][y] != Blocks.AIR.getId()) {
-					Block block = this.blockRegistry.getBlock(chunk[x][y]);
+			for (int y = startingPointY; y < Math.min(camera.getBlockY() + 1 + height - chunkY, chunkHeight); y++) {
+				Block block = chunk.getBlock(x, y);
+				if (block.getId() != Blocks.AIR.getId()) {
 					g.drawImage(block.getTexture(), blockX, y, 1, 1, null);
 				}
 			}
@@ -286,23 +207,23 @@ public class WorldManager {
 			return;
 		}
 
-		int[][] chunk = this.chunks[chunkIndex - this.leftChunkIndex];
+		Chunk chunk = this.chunks[chunkIndex - this.leftChunkIndex];
 
-		int chunkWidth = chunk.length;
+		int chunkWidth = chunk.getWidth();
 		int chunkX = chunkWidth * chunkIndex;
 
 		if (blockX < chunkX || blockX >= chunkX + chunkWidth) {
 			return;
 		}
 
-		int chunkHeight = chunk[0].length;
+		int chunkHeight = chunk.getHeight();
 		int chunkY = 0;
 
 		if (blockY < chunkY || blockY >= chunkY + chunkHeight) {
 			return;
 		}
 
-		int blockID = chunk[blockX - chunkX][blockY - chunkY];
+		int blockID = chunk.getBlocks()[blockX - chunkX][blockY - chunkY];
 
 		if (blockID == Blocks.AIR.getId()) {
 			return;
@@ -317,7 +238,7 @@ public class WorldManager {
 		return this.blockRegistry;
 	}
 
-	public int[][][] getChunks() {
+	public Chunk[] getChunks() {
 		return this.chunks;
 	}
 

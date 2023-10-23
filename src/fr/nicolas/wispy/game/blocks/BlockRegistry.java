@@ -16,6 +16,7 @@ public class BlockRegistry {
 
     public void register(int id, Block block) {
         block.getType().setId(id);
+        block.getType().setBlock(block);
         blocks[id] = block;
     }
 
