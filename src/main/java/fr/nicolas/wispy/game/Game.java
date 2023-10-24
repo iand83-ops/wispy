@@ -17,6 +17,8 @@ import java.awt.event.*;
 
 public class Game implements KeyListener, MouseListener, MouseMotionListener {
 
+    private static Game instance;
+
     private final Window window;
     private RendererScreen rendererScreen;
     private GameRenderer gameRenderer;
@@ -38,6 +40,8 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
     private boolean running = true;
 
     public Game(Window window) {
+        instance = this;
+
         this.window = window;
 
         this.camera = new Camera();
@@ -223,5 +227,9 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
 
     public boolean isRunning() {
         return this.running;
+    }
+
+    public static Game getInstance() {
+        return Game.instance;
     }
 }

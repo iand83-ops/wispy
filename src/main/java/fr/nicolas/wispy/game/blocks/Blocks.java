@@ -7,7 +7,9 @@ public enum Blocks {
     DIRT,
     GRASS,
     SAND,
-    WATER;
+    WATER,
+    LOG,
+    LEAVES;
 
     private int id = 0;
     private Block block;
@@ -27,4 +29,5 @@ public enum Blocks {
     public Block getBlock() {
         return this.block;
     }
+
 }

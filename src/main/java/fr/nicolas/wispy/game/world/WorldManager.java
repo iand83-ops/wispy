@@ -11,11 +11,11 @@ import fr.nicolas.wispy.game.world.worldgen.WorldGeneration;
 import fr.nicolas.wispy.ui.renderer_screens.GameRenderer;
 
 import java.awt.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.file.Files;
+import java.util.Random;
 
 public class WorldManager {
 
@@ -38,7 +38,7 @@ public class WorldManager {
 		this.camera = camera;
 		this.blockRegistry = new BlockRegistry();
 		this.chunks = new Chunk[3];
-		this.worldGeneration = new WorldGeneration(this);
+		this.worldGeneration = new WorldGeneration(this, 0);
 	}
 
 	public void loadWorld(String worldName) {
@@ -73,8 +73,8 @@ public class WorldManager {
 				Chunk chunkRight = this.chunks[2];
 
                 if (chunkLeft != null) {
-					int chunkX = this.leftChunkIndex * chunkLeft.getBlocks().length;
-					chunkCenterX = (chunkX + chunkLeft.getBlocks().length / 2.0) - game.getPlayer().getX();
+					int chunkX = this.leftChunkIndex * chunkLeft.getWidth();
+					chunkCenterX = (chunkX + chunkLeft.getWidth() / 2.0) - game.getPlayer().getX();
                     if (chunkCenterX >= 0) {
                         saveChunk(chunkRight, this.leftChunkIndex + 2);
 						this.chunks[2] = this.chunks[1];
@@ -86,8 +86,8 @@ public class WorldManager {
                 }
 
 				if (chunkRight != null) {
-					int chunkX = (this.leftChunkIndex + 2) * chunkRight.getBlocks().length;
-					chunkCenterX = (chunkX + chunkRight.getBlocks().length / 2.0) - game.getPlayer().getX();
+					int chunkX = (this.leftChunkIndex + 2) * chunkRight.getWidth();
+					chunkCenterX = (chunkX + chunkRight.getWidth() / 2.0) - game.getPlayer().getX();
 					if (chunkCenterX <= gamePanel.getWidth() / (double) gamePanel.getBlockSize()) {
 						saveChunk(chunkLeft, this.leftChunkIndex);
 
@@ -111,17 +111,20 @@ public class WorldManager {
 	}
 
 	private void saveChunk(Chunk chunk, int index) {
-		try {
-			File dimensionFolder = new File(worldDir, "" + dimension.getId());
+		File dimensionFolder = new File(worldDir, "" + dimension.getId());
 
-			if (!dimensionFolder.isDirectory()) {
-				dimensionFolder.mkdirs();
+		if (!dimensionFolder.isDirectory()) {
+			dimensionFolder.mkdirs();
+		}
+
+		try (DataOutputStream dos = new DataOutputStream(Files.newOutputStream(new File(dimensionFolder, index + ".chunk").toPath()))) {
+			dos.writeInt(chunk.getBlocks().length);
+			for (Block block : chunk.getBlocks()) {
+				byte[] chunkBytes = block.toBytes();
+				dos.writeInt(chunkBytes.length);
+				dos.write(chunkBytes);
 			}
-
-			ObjectOutputStream objectOutputS = new ObjectOutputStream(Files.newOutputStream(new File(dimensionFolder, index + ".chunk").toPath()));
-			objectOutputS.writeObject(chunk.getBlocks());
-			objectOutputS.close();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -143,11 +146,18 @@ public class WorldManager {
 		File dimensionFolder = new File(worldDir, "" + dimension.getId());
 		File chunkFile = new File(dimensionFolder, index + ".chunk");
 
-		Chunk chunk;
+		Chunk chunk = new Chunk(this);
+		Block[] blocks = new Block[CHUNK_WIDTH * CHUNK_HEIGHT];
+		chunk.setBlocks(blocks);
 
-		try (ObjectInputStream objectInputS = new ObjectInputStream(Files.newInputStream(chunkFile.toPath()))) {
-			chunk = new Chunk(this);
-			chunk.setBlocks((int[][]) objectInputS.readObject());
+		try (DataInputStream dis = new DataInputStream(Files.newInputStream(chunkFile.toPath()))) {
+			int arrayLength = dis.readInt();
+			for (int i = 0; i < arrayLength; i++) {
+				int blockBytesLength = dis.readInt();
+				byte[] blockBytes = new byte[blockBytesLength];
+				dis.readFully(blockBytes);
+				blocks[i] = Block.fromBytes(blockBytes);
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 
@@ -185,13 +195,42 @@ public class WorldManager {
 		int startingPointX = (int) Math.max(0, camera.getX() - chunkX);
 		int startingPointY = (int) Math.max(0, camera.getY() - chunkY);
 
+		int[] lightLevels = new int[chunkWidth];
+		int[] fluidLevels = new int[chunkWidth];
+
+		double yOffset = camera.getY() - camera.getBlockY();
+
 		for (int x = startingPointX; x < Math.min(camera.getBlockX() + 1 + width - chunkX, chunkWidth); x++) {
 			int blockX = x + chunkX;
 
 			for (int y = startingPointY; y < Math.min(camera.getBlockY() + 1 + height - chunkY, chunkHeight); y++) {
 				Block block = chunk.getBlock(x, y);
-				if (block.getId() != Blocks.AIR.getId()) {
+				if (block.getType() != Blocks.AIR) {
+					if (block.isSolid() && !block.isBackgroundBlock() && lightLevels[x] == 0) {
+						lightLevels[x] = y;
+					} else if (block.isLiquid() && !block.isBackgroundBlock() && fluidLevels[x] == 0) {
+						fluidLevels[x] = y;
+					}
+
 					g.drawImage(block.getTexture(), blockX, y, 1, 1, null);
+
+					if (block.isBackgroundBlock()) {
+						g.setColor(new Color(0, 0, 0, 50));
+						g.fillRect(blockX, y, 1, 1);
+					} else if (lightLevels[x] != 0 && y >= lightLevels[x]) {
+						int minOpacity = 0;
+						if (fluidLevels[x] != 0 && y >= fluidLevels[x]) {
+							minOpacity = Math.max(0, Math.min(255, (int) (((y - (fluidLevels[x] == startingPointY ? yOffset : 0) - fluidLevels[x])) * 255.0 / 24)));
+						}
+
+						int opacity = (int) (((y + (lightLevels[x] == startingPointY ? yOffset : 0) - lightLevels[x])) * 255.0 / 10);
+						g.setColor(new Color(0, 0, 0, Math.max(minOpacity, Math.min(255, opacity))));
+						g.fillRect(blockX, y, 1, 1);
+					} else if (block.isLiquid() && fluidLevels[x] != 0 && y >= fluidLevels[x]) {
+						int opacity = (int) (((y - (fluidLevels[x] == startingPointY ? yOffset : 0) - fluidLevels[x])) * 255.0 / 24);
+						g.setColor(new Color(0, 0, 0, Math.max(0, Math.min(255, opacity))));
+						g.fillRect(blockX, y, 1, 1);
+					}
 				}
 			}
 		}
@@ -223,9 +262,9 @@ public class WorldManager {
 			return;
 		}
 
-		int blockID = chunk.getBlocks()[blockX - chunkX][blockY - chunkY];
+		Block block = chunk.getBlock(blockX - chunkX, blockY - chunkY);
 
-		if (blockID == Blocks.AIR.getId()) {
+		if (block.getType() == Blocks.AIR) {
 			return;
 		}
 

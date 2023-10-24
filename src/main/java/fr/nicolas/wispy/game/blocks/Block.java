@@ -1,8 +1,13 @@
 package fr.nicolas.wispy.game.blocks;
 
+import fr.nicolas.wispy.game.Game;
 import fr.nicolas.wispy.game.utils.Assets;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class Block {
 
@@ -12,6 +17,8 @@ public class Block {
 	private final double height;
 
 	private final BufferedImage texture;
+
+	private boolean backgroundBlock = false;
 
 	public Block(Blocks type) {
 		this(type, Materials.SOLID, 1, 1);
@@ -28,6 +35,33 @@ public class Block {
 		this.height = height;
 
 		this.texture = type == Blocks.AIR ? null : Assets.get("blocks/" + type.name().toLowerCase());
+	}
+
+	public byte[] toBytes() throws IOException {
+		try (ByteArrayOutputStream stream = new ByteArrayOutputStream(); DataOutputStream out = new DataOutputStream(stream)) {
+			out.writeInt(this.type.getId());
+			write(out);
+			return stream.toByteArray();
+		}
+	}
+
+	public static Block fromBytes(byte[] data) {
+		ByteBuffer buffer = ByteBuffer.wrap(data);
+
+		int id = buffer.getInt();
+
+		Block block = Game.getInstance().getWorldManager().getBlockRegistry().getBlock(id);
+		block.read(buffer);
+
+		return block;
+	}
+
+	protected void read(ByteBuffer buffer) {
+		this.backgroundBlock = buffer.get() == 1;
+	}
+
+	protected void write(DataOutputStream out) throws IOException {
+		out.write((byte) (this.backgroundBlock ? 1 : 0));
 	}
 
 	public Blocks getType() {
@@ -66,4 +100,17 @@ public class Block {
 		return this.type.getId();
 	}
 
+	public void setBackgroundBlock(boolean backgroundBlock) {
+		this.backgroundBlock = backgroundBlock;
+	}
+
+	public boolean isBackgroundBlock() {
+		return this.backgroundBlock;
+	}
+
+	public Block copy() {
+		Block clone = new Block(this.type, this.material, this.width, this.height);
+		clone.setBackgroundBlock(this.backgroundBlock);
+		return clone;
+	}
 }

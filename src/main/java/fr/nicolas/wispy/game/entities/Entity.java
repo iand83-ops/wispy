@@ -165,6 +165,7 @@ public abstract class Entity implements Rendering {
                 isJumping = false;
             }
         } else {
+            isJumping = false;
             jumpTime = 0;
         }
 
@@ -315,7 +316,7 @@ public abstract class Entity implements Rendering {
                     continue;
                 }
 
-                if (!block.isSolid()) {
+                if (!block.isSolid() || block.isBackgroundBlock()) {
                     continue;
                 }
 
@@ -378,7 +379,7 @@ public abstract class Entity implements Rendering {
             if (groundCollision != null) {
                 y = Math.min(y, groundCollision.getY());
             } else {
-                y = Math.max(y, ceilingCollision.getY() + ceilingCollision.getBlock().getHeight() + (boundingBoxHeight - getCollisionHeight()));
+                y = Math.max(y, ceilingCollision.getY() + ceilingCollision.getBlock().getHeight() + boundingBoxHeight - (1.0 / GameRenderer.BLOCK_RESOLUTION / 2));
             }
 
             previousCollisionGround = groundCollision;

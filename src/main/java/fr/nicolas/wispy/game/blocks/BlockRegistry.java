@@ -12,6 +12,9 @@ public class BlockRegistry {
         register(4, new Block(Blocks.SAND, Materials.SOLID_GRAVITY));
 
         register(5, new Block(Blocks.WATER, Materials.LIQUID));
+
+        register(6, new Block(Blocks.LOG, Materials.SOLID));
+        register(7, new Block(Blocks.LEAVES, Materials.SOLID));
     }
 
     public void register(int id, Block block) {
@@ -21,7 +24,7 @@ public class BlockRegistry {
     }
 
     public Block getBlock(int id) {
-        return blocks[id];
+        return blocks[id].copy();
     }
 
 }
