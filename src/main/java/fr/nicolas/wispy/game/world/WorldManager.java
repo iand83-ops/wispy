@@ -167,13 +167,13 @@ public class WorldManager {
 		return chunk;
 	}
 
-	public void renderChunks(Graphics2D g, double width, double height) {
+	public void renderChunks(Graphics2D g, double width, double height, boolean fluidLayer) {
 		for (int i = 0; i < this.chunks.length; i++) {
-			renderChunk(g, this.chunks[i], this.leftChunkIndex + i, width, height);
+			renderChunk(g, this.chunks[i], this.leftChunkIndex + i, width, height, fluidLayer);
 		}
 	}
 
-	private void renderChunk(Graphics2D g, Chunk chunk, int chunkIndex, double width, double height) {
+	private void renderChunk(Graphics2D g, Chunk chunk, int chunkIndex, double width, double height, boolean fluidLayer) {
 		if (chunk == null || chunk.getBlocks() == null) {
 			return;
 		}
@@ -205,6 +205,11 @@ public class WorldManager {
 
 			for (int y = startingPointY; y < Math.min(camera.getBlockY() + 1 + height - chunkY, chunkHeight); y++) {
 				Block block = chunk.getBlock(x, y);
+
+				if (fluidLayer && !block.isLiquid()) {
+					continue;
+				}
+
 				if (block.getType() != Blocks.AIR) {
 					if (block.isSolid() && !block.isBackgroundBlock() && lightLevels[x] == 0) {
 						lightLevels[x] = y;
@@ -212,7 +217,15 @@ public class WorldManager {
 						fluidLevels[x] = y;
 					}
 
+					if (fluidLayer) {
+						g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5F));
+					}
+
 					g.drawImage(block.getTexture(), blockX, y, 1, 1, null);
+
+					if (fluidLayer) {
+						g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0F));
+					}
 
 					if (block.isBackgroundBlock()) {
 						g.setColor(new Color(0, 0, 0, 50));
@@ -226,7 +239,7 @@ public class WorldManager {
 						int opacity = (int) (((y + (lightLevels[x] == startingPointY ? yOffset : 0) - lightLevels[x])) * 255.0 / 10);
 						g.setColor(new Color(0, 0, 0, Math.max(minOpacity, Math.min(255, opacity))));
 						g.fillRect(blockX, y, 1, 1);
-					} else if (block.isLiquid() && fluidLevels[x] != 0 && y >= fluidLevels[x]) {
+					} else if (block.isLiquid() && fluidLevels[x] != 0 && y >= fluidLevels[x] && fluidLayer) {
 						int opacity = (int) (((y - (fluidLevels[x] == startingPointY ? yOffset : 0) - fluidLevels[x])) * 255.0 / 24);
 						g.setColor(new Color(0, 0, 0, Math.max(0, Math.min(255, opacity))));
 						g.fillRect(blockX, y, 1, 1);

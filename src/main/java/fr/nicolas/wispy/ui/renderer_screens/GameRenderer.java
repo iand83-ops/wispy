@@ -16,7 +16,7 @@ public class GameRenderer extends RendererScreen {
 
 	private int blockSize = BLOCK_RESOLUTION;
 
-	private final BufferedImage skyTexture;
+	private final BufferedImage cloudTexture;
 
 	private final Game game;
 	private final Player player;
@@ -37,7 +37,7 @@ public class GameRenderer extends RendererScreen {
 		setFocusable(true);
 		setDoubleBuffered(true);
 
-		this.skyTexture = Assets.get("map/sky");
+		this.cloudTexture = Assets.get("map/clouds");
 
 		// Chunk loading thread
 		game.getWorldManager().startLoadingChunkThread(game.getRunner(), this);
@@ -51,28 +51,44 @@ public class GameRenderer extends RendererScreen {
 
 		Graphics2D graphics = (Graphics2D) g;
 
-		graphics.drawImage(skyTexture, 0, 0, this.getWidth(), this.getHeight(), null);
-
 		double worldCameraX = camera.getX();
 		double worldCameraY = camera.getY();
+
+		graphics.setColor(new Color(0x2EA7E8));
+		graphics.fillRect(0, 0, getWidth(), getHeight());
 
 		graphics.scale(blockSize, blockSize);
 		graphics.translate(-worldCameraX, -worldCameraY);
 
-		worldManager.renderChunks(graphics, this.getWidth() / (double) blockSize, this.getHeight() / (double) blockSize);
+		worldManager.renderChunks(graphics, this.getWidth() / (double) blockSize, this.getHeight() / (double) blockSize, false);
 
 		player.render(graphics);
 
-		if (game.getMenu() != null) {
-			graphics.translate(worldCameraX, worldCameraY);
-			graphics.scale(1.0 / blockSize, 1.0 / blockSize);
+		worldManager.renderChunks(graphics, this.getWidth() / (double) blockSize, this.getHeight() / (double) blockSize, true);
 
-			game.getMenu().render(graphics, this.getWidth(), this.getHeight());
-		} else {
+		if (game.getMenu() == null) {
 			worldManager.renderSelection(graphics, blockSize, game.getMouseLocation());
+		}
 
-			graphics.translate(worldCameraX, worldCameraY);
-			graphics.scale(1.0 / blockSize, 1.0 / blockSize);
+		int cloudsWidth = 128 / 2;
+		int cloudsHeight = 16 / 2;
+		double cloudsX = worldCameraX % cloudsWidth;
+		int tilesX = (int) Math.ceil(getWidth() / (double) cloudsWidth) + 1;
+		for (int x = 0; x < tilesX; x++) {
+			graphics.translate(worldCameraX - cloudsX, 0);
+
+			graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.8F));
+			graphics.drawImage(cloudTexture, cloudsWidth * (int) Math.copySign(x, cloudsX), 25, cloudsWidth, cloudsHeight, null);
+			graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0F));
+
+			graphics.translate(-(worldCameraX - cloudsX), 0);
+		}
+
+		graphics.translate(worldCameraX, worldCameraY);
+		graphics.scale(1.0 / blockSize, 1.0 / blockSize);
+
+		if (game.getMenu() != null) {
+			game.getMenu().render(graphics, this.getWidth(), this.getHeight());
 		}
 	}
 

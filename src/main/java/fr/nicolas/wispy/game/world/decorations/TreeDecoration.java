@@ -8,17 +8,17 @@ public class TreeDecoration extends Decoration {
     @Override
     public int[][] getBlocks() {
         return new int[][] {
-                { 0, 0, Blocks.LEAVES.getId(), Blocks.LEAVES.getId(), 0 },
-                { 0, 0, Blocks.LEAVES.getId(), Blocks.LEAVES.getId(), Blocks.LEAVES.getId() },
-                { Blocks.LOG.getId(), Blocks.LOG.getId(), Blocks.LEAVES.getId(), Blocks.LEAVES.getId(), Blocks.LEAVES.getId() },
-                { 0, 0, Blocks.LEAVES.getId(), Blocks.LEAVES.getId(), Blocks.LEAVES.getId() },
-                { 0, 0, Blocks.LEAVES.getId(), Blocks.LEAVES.getId(), 0 },
+                { 0, 0, Blocks.OAK_LEAVES.getId(), Blocks.OAK_LEAVES.getId(), 0 },
+                { 0, 0, Blocks.OAK_LEAVES.getId(), Blocks.OAK_LEAVES.getId(), Blocks.OAK_LEAVES.getId() },
+                { Blocks.OAK_LOG.getId(), Blocks.OAK_LOG.getId(), Blocks.OAK_LEAVES.getId(), Blocks.OAK_LEAVES.getId(), Blocks.OAK_LEAVES.getId() },
+                { 0, 0, Blocks.OAK_LEAVES.getId(), Blocks.OAK_LEAVES.getId(), Blocks.OAK_LEAVES.getId() },
+                { 0, 0, Blocks.OAK_LEAVES.getId(), Blocks.OAK_LEAVES.getId(), 0 },
         };
     }
 
     @Override
     public boolean testBase(Chunk chunk, int x, int y) {
-        return testSpace(chunk, x, y) && chunk.getBlock(x, y + 1).getType() == Blocks.GRASS && chunk.getBlock(x + 1, y).getType() != Blocks.LOG && chunk.getBlock(x - 1, y).getType() == Blocks.LOG;
+        return testSpace(chunk, x, y) && chunk.getBlock(x, y + 1).getType() == Blocks.GRASS && chunk.getBlock(x + 1, y).getType() != Blocks.OAK_LOG && chunk.getBlock(x - 1, y).getType() == Blocks.OAK_LOG;
     }
 
     @Override

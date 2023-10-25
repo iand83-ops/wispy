@@ -8,8 +8,8 @@ public enum Blocks {
     GRASS,
     SAND,
     WATER,
-    LOG,
-    LEAVES;
+    OAK_LOG,
+    OAK_LEAVES;
 
     private int id = 0;
     private Block block;
