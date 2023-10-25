@@ -52,6 +52,12 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
 
         // Frame rate thread
         this.runner = new Runner(this);
+
+        // Shutdown hook
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            this.running = false;
+            worldManager.closeWorld();
+        }));
     }
 
     public void openMenu(Menu menu) {

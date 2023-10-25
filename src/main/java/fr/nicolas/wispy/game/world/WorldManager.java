@@ -9,11 +9,14 @@ import fr.nicolas.wispy.game.render.Camera;
 import fr.nicolas.wispy.game.world.chunks.Chunk;
 import fr.nicolas.wispy.game.world.worldgen.WorldGeneration;
 import fr.nicolas.wispy.ui.renderer_screens.GameRenderer;
+import org.apache.commons.io.FileUtils;
+import org.json.JSONObject;
 
 import java.awt.*;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -34,6 +37,10 @@ public class WorldManager {
 	private final BlockRegistry blockRegistry;
 	private final WorldGeneration worldGeneration;
 
+	private JSONObject playerData = new JSONObject();
+
+	private boolean loaded = false;
+
 	public WorldManager(Game game, Camera camera) {
 		this.game = game;
 		this.camera = camera;
@@ -53,16 +60,88 @@ public class WorldManager {
 			this.chunks[i] = loadChunk(this.leftChunkIndex + i);
 		}
 
-		// Player spawnpoint
-		this.game.getPlayer().setPos(0, getPlayerSpawnY());
+		File playerDataFile = new File(worldDir, "player.json");
+		if (playerDataFile.isFile()) {
+			try {
+				this.playerData = new JSONObject(FileUtils.readFileToString(playerDataFile, "UTF-8"));
+				teleportPlayerToSpawnPoint();
+
+				this.leftChunkIndex = (int) Math.floor(game.getPlayer().getX() / CHUNK_WIDTH);
+
+				for (int i = 0; i < this.chunks.length; i++) {
+					this.chunks[i] = loadChunk(this.leftChunkIndex + i);
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+				teleportPlayerToSpawnPoint();
+			}
+		} else {
+			this.playerData = new JSONObject();
+			teleportPlayerToSpawnPoint();
+		}
+
+		this.loaded = true;
 	}
 
-	public double getPlayerSpawnY() {
-		int y = 0;
-		while (!this.chunks[0].getBlock(0, y).isSolidOrLiquid()) {
-			y++;
+	public void closeWorld() {
+		if (!this.loaded) {
+			return;
 		}
-		return y;
+
+		for (int i = 0; i < this.chunks.length; i++) {
+			saveChunk(this.chunks[i], this.leftChunkIndex + i);
+		}
+
+		savePlayerData();
+
+		File playerDataFile = new File(worldDir, "player.json");
+		try {
+			FileUtils.writeStringToFile(playerDataFile, this.playerData.toString(), "UTF-8");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		this.loaded = false;
+	}
+
+	public void savePlayerData() {
+		this.playerData.put("x", this.game.getPlayer().getX());
+		this.playerData.put("y", this.game.getPlayer().getY());
+		this.playerData.put("dimension", 0);
+	}
+
+	private void teleportPlayerToSpawnPoint() {
+		if (this.playerData.has("x") && this.playerData.has("y")) {
+			this.game.getPlayer().setPos(this.playerData.getDouble("x"), this.playerData.getDouble("y"));
+			return;
+		}
+
+		for (int i = 0; i < this.chunks.length; i++) {
+			int chunkX = this.leftChunkIndex + i;
+			Chunk chunk = this.chunks[i];
+
+			int fromX = -1;
+
+			if (chunk != null) {
+				for (int x = 0; x < chunk.getLandLevels().length; x++) {
+					if (chunk.getFluidLevels()[x] == 0 || chunk.getFluidLevels()[x] > chunk.getLandLevels()[x]) {
+						if (fromX == -1) {
+							fromX = x;
+						}
+					} else if (fromX != -1) {
+						x -= (x - fromX) / 2;
+						this.game.getPlayer().setPos(chunkX * chunk.getWidth() + x, chunk.getLandLevels()[x] - 1);
+						return;
+					}
+				}
+				if (fromX != -1) {
+					int x = chunk.getLandLevels().length - (chunk.getLandLevels().length - fromX) / 2;
+					this.game.getPlayer().setPos(chunkX * chunk.getWidth() + x, chunk.getLandLevels()[x] - 1);
+					return;
+				}
+			}
+		}
+		this.game.getPlayer().setPos(0, this.chunks[1].getLandLevels()[0]);
 	}
 
 	public void startLoadingChunkThread(Runner runner, GameRenderer gamePanel) {

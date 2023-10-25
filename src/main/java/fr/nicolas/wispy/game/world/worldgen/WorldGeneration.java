@@ -132,8 +132,7 @@ public class WorldGeneration {
                     if (decoration.testBase(chunk, x, y) && decoration.getPriority() > priority && random.nextDouble() <= decoration.getChance()) {
                         int[][] decorationBlocks = decoration.getBlocks(random);
                         // Must be included in the chunk
-                        System.out.println(decorationBlocks.length / 2);
-                        if (x - decorationBlocks.length / 2 >= 0 && x + decorationBlocks.length / 2 < blocks.length && y - decorationBlocks[0].length >= 0) {
+                        if (x - decorationBlocks.length / 2 >= 0 && x + decorationBlocks.length / 2 < chunkWidth && y - decorationBlocks[0].length >= 0) {
                             priority = decoration.getPriority();
                             decorationBlocksToPlace = decorationBlocks;
                             decorationToPlace = decoration;
@@ -146,7 +145,7 @@ public class WorldGeneration {
                         for (int decorationY = 0; decorationY < decorationBlocksToPlace[decorationX].length; decorationY++) {
                             int blockX = x + decorationX - (decorationBlocksToPlace.length / 2);
                             int blockY = y - decorationY;
-                            if (blockX >= 0 && blockX < blocks.length && blockY >= 0) {
+                            if (blockX >= 0 && blockX < chunkWidth && blockY >= 0) {
                                 int id = decorationBlocksToPlace[decorationX][decorationY];
                                 if (id != 0 && decorationToPlace.testSpace(chunk, blockX, blockY)) {
                                     Block block = worldManager.getBlockRegistry().getBlock(id);
