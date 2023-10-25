@@ -3,8 +3,8 @@ package fr.nicolas.wispy.game.world;
 import fr.nicolas.wispy.Runner;
 import fr.nicolas.wispy.game.Game;
 import fr.nicolas.wispy.game.blocks.Block;
-import fr.nicolas.wispy.game.blocks.BlockRegistry;
-import fr.nicolas.wispy.game.blocks.Blocks;
+import fr.nicolas.wispy.game.blocks.registery.BlockRegistry;
+import fr.nicolas.wispy.game.blocks.registery.Blocks;
 import fr.nicolas.wispy.game.render.Camera;
 import fr.nicolas.wispy.game.world.chunks.Chunk;
 import fr.nicolas.wispy.game.world.worldgen.WorldGeneration;
@@ -15,12 +15,13 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.nio.file.Files;
-import java.util.Random;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class WorldManager {
 
 	public static final int CHUNK_WIDTH = 82;
-	public static final int CHUNK_HEIGHT = 100;
+	public static final int CHUNK_HEIGHT = 512;
 
 	private int leftChunkIndex = -1;
 	private final Chunk[] chunks;
@@ -117,7 +118,7 @@ public class WorldManager {
 			dimensionFolder.mkdirs();
 		}
 
-		try (DataOutputStream dos = new DataOutputStream(Files.newOutputStream(new File(dimensionFolder, index + ".chunk").toPath()))) {
+		try (DataOutputStream dos = new DataOutputStream(new GZIPOutputStream(Files.newOutputStream(new File(dimensionFolder, index + ".chunk").toPath())))) {
 			dos.writeInt(chunk.getBlocks().length);
 			for (Block block : chunk.getBlocks()) {
 				byte[] chunkBytes = block.toBytes();
@@ -148,9 +149,8 @@ public class WorldManager {
 
 		Chunk chunk = new Chunk(this);
 		Block[] blocks = new Block[CHUNK_WIDTH * CHUNK_HEIGHT];
-		chunk.setBlocks(blocks);
 
-		try (DataInputStream dis = new DataInputStream(Files.newInputStream(chunkFile.toPath()))) {
+		try (DataInputStream dis = new DataInputStream(new GZIPInputStream(Files.newInputStream(chunkFile.toPath())))) {
 			int arrayLength = dis.readInt();
 			for (int i = 0; i < arrayLength; i++) {
 				int blockBytesLength = dis.readInt();
@@ -158,6 +158,7 @@ public class WorldManager {
 				dis.readFully(blockBytes);
 				blocks[i] = Block.fromBytes(blockBytes);
 			}
+			chunk.setBlocks(blocks);
 		} catch (Exception e) {
 			e.printStackTrace();
 
@@ -195,10 +196,8 @@ public class WorldManager {
 		int startingPointX = (int) Math.max(0, camera.getX() - chunkX);
 		int startingPointY = (int) Math.max(0, camera.getY() - chunkY);
 
-		int[] lightLevels = new int[chunkWidth];
-		int[] fluidLevels = new int[chunkWidth];
-
-		double yOffset = camera.getY() - camera.getBlockY();
+		int[] landLevels = chunk.getLandLevels();
+		int[] fluidLevels = chunk.getFluidLevels();
 
 		for (int x = startingPointX; x < Math.min(camera.getBlockX() + 1 + width - chunkX, chunkWidth); x++) {
 			int blockX = x + chunkX;
@@ -211,37 +210,46 @@ public class WorldManager {
 				}
 
 				if (block.getType() != Blocks.AIR) {
-					if (block.isSolid() && !block.isBackgroundBlock() && lightLevels[x] == 0) {
-						lightLevels[x] = y;
-					} else if (block.isLiquid() && !block.isBackgroundBlock() && fluidLevels[x] == 0) {
-						fluidLevels[x] = y;
-					}
+					int opacity = 0;
 
-					if (fluidLayer) {
-						g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5F));
-					}
+					if (y >= landLevels[x]) {
+						int minOpacity = 0;
+						if (y >= fluidLevels[x] && fluidLevels[x] != 0) {
+							minOpacity = Math.max(0, Math.min(255, (int) (((y - fluidLevels[x])) * 255.0 / 24)));
+						}
 
-					g.drawImage(block.getTexture(), blockX, y, 1, 1, null);
-
-					if (fluidLayer) {
-						g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0F));
+						opacity = (int) (((y - landLevels[x])) * 255.0 / 10);
+						opacity = Math.max(minOpacity, Math.min(255, opacity));
+					} else if (block.isLiquid() && y >= fluidLevels[x] && fluidLayer) {
+						opacity = (int) (((y - fluidLevels[x])) * 255.0 / 24);
 					}
 
 					if (block.isBackgroundBlock()) {
-						g.setColor(new Color(0, 0, 0, 50));
+						opacity += 50;
+					}
+
+					if (fluidLayer || block.renderAsSolidColor()) {
+						int color = block.getSolidColor();
+
+						int red = (color >> 16) & 0xFF;
+						int green = (color >> 8) & 0xFF;
+						int blue = color & 0xFF;
+
+						float alpha = opacity / 255.0f;
+
+						// Blend with black based on opacity
+						int blendedRed = Math.max(0, Math.min((int) (red * (1 - alpha)), 255));
+						int blendedGreen = Math.max(0, Math.min((int) (green * (1 - alpha)), 255));
+						int blendedBlue = Math.max(0, Math.min((int) (blue * (1 - alpha)), 255));
+
+						g.setColor(new Color(blendedRed, blendedGreen, blendedBlue, 175));
 						g.fillRect(blockX, y, 1, 1);
-					} else if (lightLevels[x] != 0 && y >= lightLevels[x]) {
-						int minOpacity = 0;
-						if (fluidLevels[x] != 0 && y >= fluidLevels[x]) {
-							minOpacity = Math.max(0, Math.min(255, (int) (((y - (fluidLevels[x] == startingPointY ? yOffset : 0) - fluidLevels[x])) * 255.0 / 24)));
+					} else {
+						if (opacity < 255) {
+							g.drawImage(block.getTexture(), blockX, y, 1, 1, null);
 						}
 
-						int opacity = (int) (((y + (lightLevels[x] == startingPointY ? yOffset : 0) - lightLevels[x])) * 255.0 / 10);
-						g.setColor(new Color(0, 0, 0, Math.max(minOpacity, Math.min(255, opacity))));
-						g.fillRect(blockX, y, 1, 1);
-					} else if (block.isLiquid() && fluidLevels[x] != 0 && y >= fluidLevels[x] && fluidLayer) {
-						int opacity = (int) (((y - (fluidLevels[x] == startingPointY ? yOffset : 0) - fluidLevels[x])) * 255.0 / 24);
-						g.setColor(new Color(0, 0, 0, Math.max(0, Math.min(255, opacity))));
+						g.setColor(new Color(0, 0, 0, Math.min(255, opacity)));
 						g.fillRect(blockX, y, 1, 1);
 					}
 				}

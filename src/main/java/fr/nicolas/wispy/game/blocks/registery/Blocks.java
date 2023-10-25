@@ -1,4 +1,6 @@
-package fr.nicolas.wispy.game.blocks;
+package fr.nicolas.wispy.game.blocks.registery;
+
+import fr.nicolas.wispy.game.blocks.Block;
 
 public enum Blocks {
 
@@ -9,7 +11,8 @@ public enum Blocks {
     SAND,
     WATER,
     OAK_LOG,
-    OAK_LEAVES;
+    OAK_LEAVES,
+    IRON_ORE;
 
     private int id = 0;
     private Block block;

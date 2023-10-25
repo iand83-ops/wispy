@@ -25,7 +25,7 @@ public class Window extends JFrame {
 
 		this.addComponentListener(new ComponentListener() {
 			public void componentResized(ComponentEvent e) {
-				game.getRendererScreen().setFrameBounds(getBounds());
+				game.getRendererScreen().resize(getBounds());
 			}
 
 			public void componentHidden(ComponentEvent e) {

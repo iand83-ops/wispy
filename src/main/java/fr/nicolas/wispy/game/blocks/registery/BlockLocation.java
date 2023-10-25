@@ -1,4 +1,6 @@
-package fr.nicolas.wispy.game.blocks;
+package fr.nicolas.wispy.game.blocks.registery;
+
+import fr.nicolas.wispy.game.blocks.Block;
 
 import java.util.Objects;
 

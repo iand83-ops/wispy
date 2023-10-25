@@ -1,6 +1,8 @@
 package fr.nicolas.wispy.game.blocks;
 
 import fr.nicolas.wispy.game.Game;
+import fr.nicolas.wispy.game.blocks.registery.Blocks;
+import fr.nicolas.wispy.game.blocks.registery.Materials;
 import fr.nicolas.wispy.game.utils.Assets;
 
 import java.awt.image.BufferedImage;
@@ -8,6 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 public class Block {
 
@@ -108,9 +111,34 @@ public class Block {
 		return this.backgroundBlock;
 	}
 
+	public boolean renderAsSolidColor() {
+		return false;
+	}
+
+	public int getSolidColor() {
+		return 0;
+	}
+
+	public Block copyClass() {
+		return new Block(this.type, this.material, this.width, this.height);
+	}
+
 	public Block copy() {
-		Block clone = new Block(this.type, this.material, this.width, this.height);
+		Block clone = copyClass();
 		clone.setBackgroundBlock(this.backgroundBlock);
 		return clone;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		Block block = (Block) o;
+		return backgroundBlock == block.backgroundBlock && type == block.type;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(type, backgroundBlock);
 	}
 }

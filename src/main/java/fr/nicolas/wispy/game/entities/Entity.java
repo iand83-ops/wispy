@@ -1,7 +1,7 @@
 package fr.nicolas.wispy.game.entities;
 
 import fr.nicolas.wispy.game.blocks.Block;
-import fr.nicolas.wispy.game.blocks.BlockLocation;
+import fr.nicolas.wispy.game.blocks.registery.BlockLocation;
 import fr.nicolas.wispy.game.render.AABB;
 import fr.nicolas.wispy.game.render.Vector2D;
 import fr.nicolas.wispy.game.utils.MathUtils;

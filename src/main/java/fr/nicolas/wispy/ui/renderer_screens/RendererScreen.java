@@ -12,6 +12,6 @@ public abstract class RendererScreen extends JPanel {
 		this.frameBounds = frameBounds;
 	}
 
-	public abstract void setFrameBounds(Rectangle frameBounds);
+	public abstract void resize(Rectangle frameBounds);
 
 }

@@ -52,7 +52,7 @@ public class MainMenuRenderer extends RendererScreen implements MouseListener, M
 		add(buttonSettings);
 		add(buttonQuit);
 
-		setFrameBounds(frameBounds);
+		resize(frameBounds);
 	}
 
 	@Override
@@ -119,7 +119,7 @@ public class MainMenuRenderer extends RendererScreen implements MouseListener, M
 	}
 
 	@Override
-	public void setFrameBounds(Rectangle frameBounds) {
+	public void resize(Rectangle frameBounds) {
 		this.frameBounds = frameBounds;
 
 		int newWidth = 450 * (int) frameBounds.getWidth() / Window.INIT_WIDTH;

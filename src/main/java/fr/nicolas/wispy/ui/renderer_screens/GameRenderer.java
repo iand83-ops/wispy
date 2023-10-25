@@ -42,7 +42,7 @@ public class GameRenderer extends RendererScreen {
 		// Chunk loading thread
 		game.getWorldManager().startLoadingChunkThread(game.getRunner(), this);
 
-		setFrameBounds(frameBounds);
+		resize(frameBounds);
 	}
 
 	@Override
@@ -70,6 +70,17 @@ public class GameRenderer extends RendererScreen {
 			worldManager.renderSelection(graphics, blockSize, game.getMouseLocation());
 		}
 
+		renderClouds(graphics, worldCameraX);
+
+		graphics.translate(worldCameraX, worldCameraY);
+		graphics.scale(1.0 / blockSize, 1.0 / blockSize);
+
+		if (game.getMenu() != null) {
+			game.getMenu().render(graphics, this.getWidth(), this.getHeight());
+		}
+	}
+
+	private void renderClouds(Graphics2D graphics, double worldCameraX) {
 		int cloudsWidth = 128 / 2;
 		int cloudsHeight = 16 / 2;
 		double cloudsX = worldCameraX % cloudsWidth;
@@ -83,17 +94,10 @@ public class GameRenderer extends RendererScreen {
 
 			graphics.translate(-(worldCameraX - cloudsX), 0);
 		}
-
-		graphics.translate(worldCameraX, worldCameraY);
-		graphics.scale(1.0 / blockSize, 1.0 / blockSize);
-
-		if (game.getMenu() != null) {
-			game.getMenu().render(graphics, this.getWidth(), this.getHeight());
-		}
 	}
 
 	@Override
-	public void setFrameBounds(Rectangle frameBounds) {
+	public void resize(Rectangle frameBounds) {
 		blockSize = BLOCK_RESOLUTION * (int) frameBounds.getWidth() / Window.INIT_HEIGHT;
 	}
 

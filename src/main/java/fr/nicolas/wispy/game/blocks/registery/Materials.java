@@ -1,4 +1,4 @@
-package fr.nicolas.wispy.game.blocks;
+package fr.nicolas.wispy.game.blocks.registery;
 
 public enum Materials {
 

@@ -1,10 +1,12 @@
 package fr.nicolas.wispy.game.world.worldgen;
 
 import fr.nicolas.wispy.game.blocks.Block;
-import fr.nicolas.wispy.game.blocks.Blocks;
+import fr.nicolas.wispy.game.blocks.OreBlock;
+import fr.nicolas.wispy.game.blocks.registery.Blocks;
 import fr.nicolas.wispy.game.world.WorldManager;
 import fr.nicolas.wispy.game.world.chunks.Chunk;
 import fr.nicolas.wispy.game.world.decorations.Decoration;
+import fr.nicolas.wispy.game.world.decorations.OreDecoration;
 import fr.nicolas.wispy.game.world.decorations.TreeDecoration;
 import org.spongepowered.noise.LatticeOrientation;
 import org.spongepowered.noise.Noise;
@@ -19,7 +21,8 @@ public class WorldGeneration {
     private final long seed;
 
     private final Decoration[] decorations = {
-            new TreeDecoration()
+            new TreeDecoration(),
+            new OreDecoration()
     };
 
     public WorldGeneration(WorldManager worldManager, long seed) {
@@ -38,7 +41,7 @@ public class WorldGeneration {
         Arrays.fill(blocks, Blocks.AIR.getBlock());
         chunk.setBlocks(blocks);
 
-        int waterLevel = chunkHeight / 2;
+        int waterLevel = 60;
 
         // Fill with water
         for (int x = 0; x < chunkWidth; x++) {
@@ -50,11 +53,11 @@ public class WorldGeneration {
         }
 
         int worldX = index * chunkWidth;
-        int landHeight = chunkHeight / 2;
+        int landHeight = waterLevel;
 
         // Terrain shape
         for (int x = 0; x < chunkWidth; x++) {
-            int yLevel = (int) (waterLevel + Noise.simplexStyleGradientCoherentNoise3D((worldX + x) * 0.01, 0, 0, 0, LatticeOrientation.CLASSIC, NoiseQualitySimplex.SMOOTH) * landHeight - landHeight / 3);
+            int yLevel = (int) (waterLevel + Noise.simplexStyleGradientCoherentNoise3D((worldX + x) * 0.01, 0, 0, 0, LatticeOrientation.CLASSIC, NoiseQualitySimplex.SMOOTH) * landHeight - landHeight / 2.75);
             for (int y = 0; y < chunkHeight; y++) {
                 if (y >= yLevel) {
                     chunk.setBlock(x, y, Blocks.STONE.getBlock());
@@ -127,8 +130,9 @@ public class WorldGeneration {
                 Decoration decorationToPlace = null;
                 for (Decoration decoration : decorations) {
                     if (decoration.testBase(chunk, x, y) && decoration.getPriority() > priority && random.nextDouble() <= decoration.getChance()) {
-                        int[][] decorationBlocks = decoration.getBlocks();
+                        int[][] decorationBlocks = decoration.getBlocks(random);
                         // Must be included in the chunk
+                        System.out.println(decorationBlocks.length / 2);
                         if (x - decorationBlocks.length / 2 >= 0 && x + decorationBlocks.length / 2 < blocks.length && y - decorationBlocks[0].length >= 0) {
                             priority = decoration.getPriority();
                             decorationBlocksToPlace = decorationBlocks;
@@ -153,6 +157,20 @@ public class WorldGeneration {
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        // Caves
+        for (int x = 0; x < chunkWidth; x++) {
+            for (int y = 0; y < chunkHeight; y++) {
+                Block block = chunk.getBlock(x, y);
+
+                if (block.getType() == Blocks.STONE || block instanceof OreBlock) {
+                    double noise = Noise.simplexStyleGradientCoherentNoise3D((worldX + x) * 0.1, y * 0.1, 0, 0, LatticeOrientation.CLASSIC, NoiseQualitySimplex.SMOOTH);
+                    if (noise > 0.5) {
+                        block.setBackgroundBlock(true);
                     }
                 }
             }

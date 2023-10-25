@@ -178,7 +178,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
         window.validate();
         rendererScreen.requestFocus();
 
-        rendererScreen.setFrameBounds(window.getBounds());
+        rendererScreen.resize(window.getBounds());
     }
 
     public Player getPlayer() {
