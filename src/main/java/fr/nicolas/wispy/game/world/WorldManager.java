@@ -25,6 +25,7 @@ public class WorldManager {
 
 	public static final int CHUNK_WIDTH = 82;
 	public static final int CHUNK_HEIGHT = 512;
+	public static final int DAY_DURATION = 20*60*1000;
 
 	private int leftChunkIndex = -1;
 	private final Chunk[] chunks;
@@ -37,9 +38,11 @@ public class WorldManager {
 	private final BlockRegistry blockRegistry;
 	private final WorldGeneration worldGeneration;
 
-	private JSONObject playerData = new JSONObject();
+	private JSONObject worldData = new JSONObject();
 
 	private boolean loaded = false;
+
+	private long worldTimeReference = 0;
 
 	public WorldManager(Game game, Camera camera) {
 		this.game = game;
@@ -60,10 +63,17 @@ public class WorldManager {
 			this.chunks[i] = loadChunk(this.leftChunkIndex + i);
 		}
 
-		File playerDataFile = new File(worldDir, "player.json");
-		if (playerDataFile.isFile()) {
+		this.worldTimeReference = System.currentTimeMillis();
+
+		File worldDataFile = new File(worldDir, "world.json");
+		if (worldDataFile.isFile()) {
 			try {
-				this.playerData = new JSONObject(FileUtils.readFileToString(playerDataFile, "UTF-8"));
+				this.worldData = new JSONObject(FileUtils.readFileToString(worldDataFile, "UTF-8"));
+
+				if (this.worldData.has("time")) {
+					worldTimeReference = this.worldData.getLong("time");
+				}
+
 				teleportPlayerToSpawnPoint();
 
 				this.leftChunkIndex = (int) Math.floor(game.getPlayer().getX() / CHUNK_WIDTH);
@@ -76,7 +86,7 @@ public class WorldManager {
 				teleportPlayerToSpawnPoint();
 			}
 		} else {
-			this.playerData = new JSONObject();
+			this.worldData = new JSONObject();
 			teleportPlayerToSpawnPoint();
 		}
 
@@ -94,9 +104,9 @@ public class WorldManager {
 
 		savePlayerData();
 
-		File playerDataFile = new File(worldDir, "player.json");
+		File worldDataFile = new File(worldDir, "world.json");
 		try {
-			FileUtils.writeStringToFile(playerDataFile, this.playerData.toString(), "UTF-8");
+			FileUtils.writeStringToFile(worldDataFile, this.worldData.toString(), "UTF-8");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -105,15 +115,23 @@ public class WorldManager {
 	}
 
 	public void savePlayerData() {
-		this.playerData.put("x", this.game.getPlayer().getX());
-		this.playerData.put("y", this.game.getPlayer().getY());
-		this.playerData.put("dimension", 0);
+		JSONObject playerData = new JSONObject();
+
+		playerData.put("x", this.game.getPlayer().getX());
+		playerData.put("y", this.game.getPlayer().getY());
+		playerData.put("dimension", 0);
+
+		this.worldData.put("player", playerData);
+		this.worldData.put("time", this.worldTimeReference);
 	}
 
 	private void teleportPlayerToSpawnPoint() {
-		if (this.playerData.has("x") && this.playerData.has("y")) {
-			this.game.getPlayer().setPos(this.playerData.getDouble("x"), this.playerData.getDouble("y"));
-			return;
+		if (this.worldData.has("player")) {
+			JSONObject playerData = this.worldData.getJSONObject("player");
+			if (playerData != null && playerData.has("x") && playerData.has("y")) {
+				this.game.getPlayer().setPos(playerData.getDouble("x"), playerData.getDouble("y"));
+				return;
+			}
 		}
 
 		for (int i = 0; i < this.chunks.length; i++) {
@@ -277,6 +295,7 @@ public class WorldManager {
 
 		int[] landLevels = chunk.getLandLevels();
 		int[] fluidLevels = chunk.getFluidLevels();
+		float timeFactor = getTimeFactor();
 
 		for (int x = startingPointX; x < Math.min(camera.getBlockX() + 1 + width - chunkX, chunkWidth); x++) {
 			int blockX = x + chunkX;
@@ -306,6 +325,8 @@ public class WorldManager {
 					if (block.isBackgroundBlock()) {
 						opacity += 50;
 					}
+
+					opacity += (int) (150 * timeFactor);
 
 					if (fluidLayer || block.renderAsSolidColor()) {
 						int color = block.getSolidColor();
@@ -383,5 +404,14 @@ public class WorldManager {
 
 	public int getLeftChunkIndex() {
 		return this.leftChunkIndex;
+	}
+
+	public long getTime() {
+		return (System.currentTimeMillis() - this.worldTimeReference) % 20_000;
+	}
+
+	public float getTimeFactor() {
+		float sineValue = (float) Math.sin((getTime() / (float) DAY_DURATION) * 2 * Math.PI);
+		return (sineValue + 1) / 2;
 	}
 }

@@ -4,6 +4,7 @@ import fr.nicolas.wispy.game.Game;
 import fr.nicolas.wispy.game.entities.Player;
 import fr.nicolas.wispy.game.render.Camera;
 import fr.nicolas.wispy.game.utils.Assets;
+import fr.nicolas.wispy.game.utils.MathUtils;
 import fr.nicolas.wispy.game.world.WorldManager;
 import fr.nicolas.wispy.ui.Window;
 
@@ -51,10 +52,12 @@ public class GameRenderer extends RendererScreen {
 
 		Graphics2D graphics = (Graphics2D) g;
 
-		double worldCameraX = camera.getX();
-		double worldCameraY = camera.getY();
+		double worldCameraX = MathUtils.align(camera.getX());
+		double worldCameraY = MathUtils.align(camera.getY());
 
-		graphics.setColor(new Color(0x2EA7E8));
+		int dayColor = 0x2EA7E8;
+		int nightColor = 0x151836;
+		graphics.setColor(MathUtils.interpolate(dayColor, nightColor, worldManager.getTimeFactor()));
 		graphics.fillRect(0, 0, getWidth(), getHeight());
 
 		graphics.scale(blockSize, blockSize);

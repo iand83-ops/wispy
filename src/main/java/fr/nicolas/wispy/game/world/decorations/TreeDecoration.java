@@ -20,7 +20,10 @@ public class TreeDecoration extends Decoration {
 
     @Override
     public boolean testBase(Chunk chunk, int x, int y) {
-        return testSpace(chunk, x, y) && chunk.getBlock(x, y + 1).getType() == Blocks.GRASS;
+        return testSpace(chunk, x, y) &&
+                chunk.getBlock(x, y + 1).getType() == Blocks.GRASS &&
+                chunk.getBlock(x + 1, y).getType() != Blocks.OAK_LOG &&
+                chunk.getBlock(x - 1, y).getType() != Blocks.OAK_LOG;
     }
 
     @Override

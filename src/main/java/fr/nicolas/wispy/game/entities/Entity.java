@@ -88,11 +88,11 @@ public abstract class Entity implements Rendering {
         boolean heightFacing = useHeightForFacing();
 
         if (isFacingRight) {
-            drawImage(g, img[frameIndex], x - widthOffset, y - height + heightOffset, width, height);
+            drawImage(g, img[frameIndex], MathUtils.align(x - widthOffset), MathUtils.align(y - height + heightOffset), width, height);
         } else {
             drawImage(g, img[frameIndex],
-                    x + (heightFacing ? 0 : width) - widthOffset,
-                    y - (heightFacing ? 0 : height) + heightOffset,
+                    MathUtils.align(x + (heightFacing ? 0 : width) - widthOffset),
+                    MathUtils.align(y - (heightFacing ? 0 : height) + heightOffset),
                     (heightFacing ? width : -width),
                     (heightFacing ? -height : height));
         }
@@ -353,7 +353,7 @@ public abstract class Entity implements Rendering {
             double boundingBoxWidth = boundingBox.getMax().x - boundingBox.getMin().x;
 
             if (rightCollision != null) {
-                x = Math.min(x, rightCollision.getX() - (boundingBoxWidth - 1.0 / GameRenderer.BLOCK_RESOLUTION));
+                x = Math.min(x, rightCollision.getX() - boundingBoxWidth);
             } else {
                 x = Math.max(x, leftCollision.getX() + leftCollision.getBlock().getHeight() + (boundingBoxWidth - getCollisionWidth()));
             }
