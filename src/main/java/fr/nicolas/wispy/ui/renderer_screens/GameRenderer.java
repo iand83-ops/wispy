@@ -92,7 +92,7 @@ public class GameRenderer extends RendererScreen {
 			graphics.translate(worldCameraX - cloudsX, 0);
 
 			graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.8F));
-			graphics.drawImage(cloudTexture, cloudsWidth * (int) Math.copySign(x, cloudsX), 25, cloudsWidth, cloudsHeight, null);
+			graphics.drawImage(cloudTexture, cloudsWidth * (int) Math.copySign(x, cloudsX), 35, cloudsWidth, cloudsHeight, null);
 			graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0F));
 
 			graphics.translate(-(worldCameraX - cloudsX), 0);

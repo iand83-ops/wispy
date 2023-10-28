@@ -60,8 +60,17 @@ public class WorldGeneration {
             int yLevel = (int) (waterLevel + Noise.simplexStyleGradientCoherentNoise3D((worldX + x) * 0.01, 0, 0, 0, LatticeOrientation.CLASSIC, NoiseQualitySimplex.SMOOTH) * landHeight - landHeight / 2.75);
             for (int y = 0; y < chunkHeight; y++) {
                 if (y >= yLevel) {
-                    chunk.setBlock(x, y, Blocks.STONE.getBlock());
+                    Block block = Blocks.STONE.getBlock();
+                    block.setOriginalType(Blocks.STONE);
+                    chunk.setBlock(x, y, block);
                 }
+            }
+        }
+
+        // Bedrock
+        for (int x = 0; x < chunkWidth; x++) {
+            for (int i = 0; i < 15; i++) {
+                chunk.setBlock(x, chunkHeight - i - 1, Blocks.BEDROCK.getBlock());
             }
         }
 
@@ -102,7 +111,7 @@ public class WorldGeneration {
 
                 for (int i = 0; i < layers; i++) {
                     if (y + i < chunkHeight) {
-                        chunk.setBlock(x, y + i, blockToPlace);
+                        chunk.setBlock(x, y + i, blockToPlace.copy());
                     }
                 }
 
@@ -113,7 +122,7 @@ public class WorldGeneration {
                         int blockY = y + gradientY;
                         Block currentBlock = chunk.getBlock(blockX, blockY);
                         if (random.nextBoolean() && (currentBlock.getType() == Blocks.STONE || currentBlock.getType() == Blocks.SAND || currentBlock.getType() == Blocks.DIRT)) {
-                            chunk.setBlock(blockX, blockY, blockToPlace);
+                            chunk.setBlock(blockX, blockY, blockToPlace.copy());
                         }
                     }
                 }
@@ -149,9 +158,12 @@ public class WorldGeneration {
                                 int id = decorationBlocksToPlace[decorationX][decorationY];
                                 if (id != 0 && decorationToPlace.testSpace(chunk, blockX, blockY)) {
                                     Block block = worldManager.getBlockRegistry().getBlock(id);
+                                    Block originalBlock = chunk.getBlock(blockX, blockY);
                                     chunk.setBlock(blockX, blockY, block);
                                     if (decorationToPlace.areBlocksNonCollidable()) {
                                         block.setBackgroundBlock(true);
+                                    } else {
+                                        block.setOriginalType(originalBlock.getType());
                                     }
                                 }
                             }
@@ -166,8 +178,8 @@ public class WorldGeneration {
             for (int y = 0; y < chunkHeight; y++) {
                 Block block = chunk.getBlock(x, y);
 
-                if (block.getType() == Blocks.STONE || block instanceof OreBlock) {
-                    double noise = Noise.simplexStyleGradientCoherentNoise3D((worldX + x) * 0.1, y * 0.1, 0, 0, LatticeOrientation.CLASSIC, NoiseQualitySimplex.SMOOTH);
+                if (block.getType() == Blocks.STONE || block.getType() == Blocks.SAND || block instanceof OreBlock) {
+                    double noise = Noise.simplexStyleGradientCoherentNoise3D((worldX + x) * 0.08, y * 0.08, 0, 0, LatticeOrientation.CLASSIC, NoiseQualitySimplex.SMOOTH);
                     if (noise > 0.5) {
                         block.setBackgroundBlock(true);
                     }

@@ -1,6 +1,7 @@
 package fr.nicolas.wispy.game;
 
 import fr.nicolas.wispy.Runner;
+import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.entities.Player;
 import fr.nicolas.wispy.game.render.Camera;
 import fr.nicolas.wispy.game.world.WorldManager;
@@ -38,6 +39,15 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
     private boolean sprintKeyPressed = false;
 
     private boolean running = true;
+
+    private boolean leftClickPressed = false;
+    private boolean rightClickPressed = false;
+
+    private Block selectedBlock = null;
+    private long blockBreakStartTime = -1;
+
+    private long lastGameTick = 0;
+    private long gameTick = 0;
 
     public Game(Window window) {
         instance = this;
@@ -78,6 +88,12 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
             return;
         }
 
+        if (System.currentTimeMillis() - lastGameTick >= 1000 / 20) {
+            lastGameTick = System.currentTimeMillis();
+            worldManager.tick(gameTick);
+            gameTick++;
+        }
+
         if (rightKeyPressed) {
             player.setWalking(true);
             player.setFacingRight(true);
@@ -96,6 +112,12 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
 
         if (jumpKeyPressed) {
             player.jump();
+        }
+
+        if (blockBreakStartTime == -1 && leftClickPressed && selectedBlock != null && selectedBlock.canBreak()) {
+            blockBreakStartTime = System.currentTimeMillis();
+        } else if (blockBreakStartTime != -1 && !leftClickPressed) {
+            blockBreakStartTime = -1;
         }
 
         player.tick(elapsedTime);
@@ -159,10 +181,22 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
     public void mouseExited(MouseEvent e) {}
 
     @Override
-    public void mousePressed(MouseEvent e) {}
+    public void mousePressed(MouseEvent e) {
+        if (e.getButton() == MouseEvent.BUTTON1) {
+            leftClickPressed = true;
+        } else if (e.getButton() == MouseEvent.BUTTON3) {
+            rightClickPressed = true;
+        }
+    }
 
     @Override
-    public void mouseReleased(MouseEvent e) {}
+    public void mouseReleased(MouseEvent e) {
+        if (e.getButton() == MouseEvent.BUTTON1) {
+            leftClickPressed = false;
+        } else if (e.getButton() == MouseEvent.BUTTON3) {
+            rightClickPressed = false;
+        }
+    }
 
     @Override
     public void mouseDragged(MouseEvent e) {
@@ -185,6 +219,19 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
         rendererScreen.requestFocus();
 
         rendererScreen.resize(window.getBounds());
+    }
+
+    public void setSelectedBlock(Block selectedBlock) {
+        this.selectedBlock = selectedBlock;
+        this.blockBreakStartTime = -1;
+    }
+
+    public Block getSelectedBlock() {
+        return this.selectedBlock;
+    }
+
+    public long getBlockBreakStartTime() {
+        return this.blockBreakStartTime;
     }
 
     public Player getPlayer() {
@@ -237,5 +284,9 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
 
     public static Game getInstance() {
         return Game.instance;
+    }
+
+    public long getGameTick() {
+        return this.gameTick;
     }
 }

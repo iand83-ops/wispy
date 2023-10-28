@@ -12,7 +12,11 @@ public enum Blocks {
     WATER,
     OAK_LOG,
     OAK_LEAVES,
-    IRON_ORE;
+    IRON_ORE,
+    COAL_ORE,
+    GOLD_ORE,
+    DIAMOND_ORE,
+    BEDROCK;
 
     private int id = 0;
     private Block block;
@@ -30,7 +34,7 @@ public enum Blocks {
     }
 
     public Block getBlock() {
-        return this.block;
+        return this.block.copy();
     }
 
 }

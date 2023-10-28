@@ -4,6 +4,7 @@ import fr.nicolas.wispy.game.Game;
 import fr.nicolas.wispy.game.blocks.registery.Blocks;
 import fr.nicolas.wispy.game.blocks.registery.Materials;
 import fr.nicolas.wispy.game.utils.Assets;
+import fr.nicolas.wispy.game.world.WorldManager;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -14,6 +15,7 @@ import java.util.Objects;
 
 public class Block {
 
+	private Blocks originalType = Blocks.AIR;
 	private final Blocks type;
 	private final Materials material;
 	private final double width;
@@ -22,6 +24,8 @@ public class Block {
 	private final BufferedImage texture;
 
 	private boolean backgroundBlock = false;
+
+	private long tickPlaced = 0;
 
 	public Block(Blocks type) {
 		this(type, Materials.SOLID, 1, 1);
@@ -38,11 +42,18 @@ public class Block {
 		this.height = height;
 
 		this.texture = type == Blocks.AIR ? null : Assets.get("blocks/" + type.name().toLowerCase());
+
+		this.tickPlaced = Game.getInstance().getGameTick();
+	}
+
+	public void tick(WorldManager worldManager, int x, int y, long gameTick) {
+
 	}
 
 	public byte[] toBytes() throws IOException {
 		try (ByteArrayOutputStream stream = new ByteArrayOutputStream(); DataOutputStream out = new DataOutputStream(stream)) {
 			out.writeInt(this.type.getId());
+			out.writeInt(this.originalType.getId());
 			write(out);
 			return stream.toByteArray();
 		}
@@ -52,8 +63,10 @@ public class Block {
 		ByteBuffer buffer = ByteBuffer.wrap(data);
 
 		int id = buffer.getInt();
+		int originalId = buffer.getInt();
 
 		Block block = Game.getInstance().getWorldManager().getBlockRegistry().getBlock(id);
+		block.setOriginalType(Game.getInstance().getWorldManager().getBlockRegistry().getBlock(originalId).getType());
 		block.read(buffer);
 
 		return block;
@@ -119,6 +132,22 @@ public class Block {
 		return 0;
 	}
 
+	public boolean canBreak() {
+		return this.getType() != Blocks.AIR && this.getType() != Blocks.BEDROCK && !this.isBackgroundBlock();
+	}
+
+	public long getTickPlaced() {
+		return this.tickPlaced;
+	}
+
+	public void setOriginalType(Blocks originalType) {
+		this.originalType = originalType;
+	}
+
+	public Blocks getOriginalType() {
+		return this.originalType;
+	}
+
 	public Block copyClass() {
 		return new Block(this.type, this.material, this.width, this.height);
 	}
@@ -126,6 +155,7 @@ public class Block {
 	public Block copy() {
 		Block clone = copyClass();
 		clone.setBackgroundBlock(this.backgroundBlock);
+		clone.setOriginalType(this.originalType);
 		return clone;
 	}
 

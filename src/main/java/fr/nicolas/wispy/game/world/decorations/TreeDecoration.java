@@ -23,7 +23,9 @@ public class TreeDecoration extends Decoration {
         return testSpace(chunk, x, y) &&
                 chunk.getBlock(x, y + 1).getType() == Blocks.GRASS &&
                 chunk.getBlock(x + 1, y).getType() != Blocks.OAK_LOG &&
-                chunk.getBlock(x - 1, y).getType() != Blocks.OAK_LOG;
+                chunk.getBlock(x - 1, y).getType() != Blocks.OAK_LOG &&
+                chunk.getBlock(x + 1, y - 1).getType() != Blocks.OAK_LOG &&
+                chunk.getBlock(x - 1, y - 1).getType() != Blocks.OAK_LOG;
     }
 
     @Override

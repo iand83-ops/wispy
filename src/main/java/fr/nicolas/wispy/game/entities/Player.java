@@ -72,7 +72,7 @@ public class Player extends Entity {
 
     @Override
     public boolean useHeightForFacing() {
-        return this.persistentLiquidCollision != null && (leftCollision == null || rightCollision == null || Math.abs(leftCollision.getX() - rightCollision.getX()) > 2);
+        return this.persistentLiquidCollision != null && (ceilingCollision != null || leftCollision == null || rightCollision == null || Math.abs(leftCollision.getX() - rightCollision.getX()) > 2);
     }
 
     @Override

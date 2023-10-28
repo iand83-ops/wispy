@@ -2,6 +2,7 @@ package fr.nicolas.wispy.game.entities;
 
 import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.registery.BlockLocation;
+import fr.nicolas.wispy.game.blocks.registery.Blocks;
 import fr.nicolas.wispy.game.render.AABB;
 import fr.nicolas.wispy.game.render.Vector2D;
 import fr.nicolas.wispy.game.utils.MathUtils;
@@ -234,7 +235,10 @@ public abstract class Entity implements Rendering {
         } else if (this.groundCollision == null && liquidCollision != null) {
             setPersistentLiquidCollision(liquidCollision);
         } else {
-            setPersistentLiquidCollision(null);
+            Block block = worldManager.getBlock((int) Math.floor(x), (int) Math.floor(y - getCollisionHeight() - 0.1));
+            if (block.getType() == Blocks.AIR || block.isBackgroundBlock()) {
+                setPersistentLiquidCollision(null);
+            }
         }
     }
 
@@ -265,31 +269,12 @@ public abstract class Entity implements Rendering {
         double playerChunkY = playerY - chunkY;
 
         double offset = 1.0 / GameRenderer.BLOCK_RESOLUTION;
-        double rotation = getRotation() - (useHeightForFacing() ? Math.toRadians(90) : 0);
 
+        AABB playerLeftAABB = new AABB(new Vector2D(playerChunkX, playerChunkY - playerHeight + offset), new Vector2D(playerChunkX, playerChunkY - offset));
+        AABB playerRightAABB = new AABB(new Vector2D(playerChunkX + playerWidth, playerChunkY - playerHeight + offset), new Vector2D(playerChunkX + playerWidth, playerChunkY - offset));
+        AABB playerUpAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY - playerHeight), new Vector2D(playerChunkX + playerWidth - offset, playerChunkY - playerHeight));
+        AABB playerDownAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY), new Vector2D(playerChunkX + playerWidth - offset, playerChunkY));
         Vector2D playerCenterPoint = new Vector2D(playerChunkX + playerWidth / 2.0, playerChunkY - playerHeight / 2.0);
-
-        Vector2D topLeft = new Vector2D(playerChunkX, playerChunkY - playerHeight);
-        Vector2D topRight = new Vector2D(playerChunkX + playerWidth, playerChunkY - playerHeight);
-        Vector2D bottomLeft = new Vector2D(playerChunkX, playerChunkY);
-        Vector2D bottomRight = new Vector2D(playerChunkX + playerWidth, playerChunkY);
-
-        Vector2D rotatedTopLeft = MathUtils.rotatePoint(topLeft, playerCenterPoint, rotation);
-        Vector2D rotatedTopRight = MathUtils.rotatePoint(topRight, playerCenterPoint, rotation);
-        Vector2D rotatedBottomLeft = MathUtils.rotatePoint(bottomLeft, playerCenterPoint, rotation);
-        Vector2D rotatedBottomRight = MathUtils.rotatePoint(bottomRight, playerCenterPoint, rotation);
-
-        double minX = Math.min(Math.min(rotatedTopLeft.x, rotatedTopRight.x), Math.min(rotatedBottomLeft.x, rotatedBottomRight.x));
-        double maxX = Math.max(Math.max(rotatedTopLeft.x, rotatedTopRight.x), Math.max(rotatedBottomLeft.x, rotatedBottomRight.x));
-        double minY = Math.min(Math.min(rotatedTopLeft.y, rotatedTopRight.y), Math.min(rotatedBottomLeft.y, rotatedBottomRight.y));
-        double maxY = Math.max(Math.max(rotatedTopLeft.y, rotatedTopRight.y), Math.max(rotatedBottomLeft.y, rotatedBottomRight.y));
-
-        this.boundingBox = new AABB(new Vector2D(minX, minY), new Vector2D(maxX, maxY));
-
-        AABB playerLeftAABB = new AABB(new Vector2D(minX, minY + offset), new Vector2D(minX, maxY - offset));
-        AABB playerRightAABB = new AABB(new Vector2D(maxX, minY + offset), new Vector2D(maxX, maxY - offset));
-        AABB playerUpAABB = new AABB(new Vector2D(minX + offset, minY), new Vector2D(maxX - offset, minY));
-        AABB playerDownAABB = new AABB(new Vector2D(minX + offset, maxY), new Vector2D(maxX - offset, maxY));
 
         for (int x = (int) -playerWidth; x <= playerWidth; x++) {
             for (int y = (int) -playerHeight; y <= playerHeight; y++) {
@@ -350,12 +335,12 @@ public abstract class Entity implements Rendering {
                 break;
             }
 
-            double boundingBoxWidth = boundingBox.getMax().x - boundingBox.getMin().x;
+            double boundingBoxWidth = getCollisionWidth();
 
             if (rightCollision != null) {
-                x = Math.min(x, rightCollision.getX() - boundingBoxWidth);
+                x = Math.min(x, rightCollision.getX() - boundingBoxWidth + 0.0001);
             } else {
-                x = Math.max(x, leftCollision.getX() + leftCollision.getBlock().getHeight() + (boundingBoxWidth - getCollisionWidth()));
+                x = Math.max(x, leftCollision.getX() + leftCollision.getBlock().getWidth() - 0.0001);
             }
 
             previousRightCollision = rightCollision;
@@ -374,12 +359,12 @@ public abstract class Entity implements Rendering {
                 break;
             }
 
-            double boundingBoxHeight = boundingBox.getMax().y - boundingBox.getMin().y;
+            double boundingBoxHeight = getCollisionHeight();
 
             if (groundCollision != null) {
-                y = Math.min(y, groundCollision.getY());
-            } else {
-                y = Math.max(y, ceilingCollision.getY() + ceilingCollision.getBlock().getHeight() + boundingBoxHeight - (1.0 / GameRenderer.BLOCK_RESOLUTION / 2));
+                y = Math.min(y, groundCollision.getY() + 0.0001);
+            } else if (ceilingCollision != null) {
+                y = Math.max(y, ceilingCollision.getY() + ceilingCollision.getBlock().getHeight() + boundingBoxHeight - 0.0001);
             }
 
             previousCollisionGround = groundCollision;

@@ -9,6 +9,11 @@ public class OreBlock extends Block {
 	}
 
 	@Override
+	public boolean canBreak() {
+		return true;
+	}
+
+	@Override
 	public Block copyClass() {
 		return new OreBlock(this.getType());
 	}
