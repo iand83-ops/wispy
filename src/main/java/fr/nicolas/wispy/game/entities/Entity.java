@@ -1,8 +1,10 @@
 package fr.nicolas.wispy.game.entities;
 
+import fr.nicolas.wispy.game.Game;
 import fr.nicolas.wispy.game.blocks.Block;
-import fr.nicolas.wispy.game.blocks.registery.BlockLocation;
-import fr.nicolas.wispy.game.blocks.registery.Blocks;
+import fr.nicolas.wispy.game.blocks.registry.BlockLocation;
+import fr.nicolas.wispy.game.blocks.registry.Blocks;
+import fr.nicolas.wispy.game.entities.registry.Entities;
 import fr.nicolas.wispy.game.render.AABB;
 import fr.nicolas.wispy.game.render.Vector2D;
 import fr.nicolas.wispy.game.utils.MathUtils;
@@ -13,8 +15,14 @@ import fr.nicolas.wispy.ui.renderer_screens.GameRenderer;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public abstract class Entity implements Rendering {
+
+    private final Entities type;
 
     protected final WorldManager worldManager;
 
@@ -53,10 +61,18 @@ public abstract class Entity implements Rendering {
     private BufferedImage[] walkTextures = new BufferedImage[0];
     private BufferedImage[] jumpTextures = new BufferedImage[0];
 
-    public Entity(WorldManager worldManager, double width, double height) {
+    private int health = 20;
+    private int maxHealth = 20;
+
+    public Entity(Entities type, WorldManager worldManager, double width, double height) {
+        this.type = type;
         this.worldManager = worldManager;
         this.width = width;
         this.height = height;
+    }
+
+    public void kill() {
+        this.setHealth(0);
     }
 
     public void render(Graphics2D g) {
@@ -73,9 +89,6 @@ public abstract class Entity implements Rendering {
         if (img.length == 0) {
             return;
         }
-
-        int width = (int) this.width;
-        int height = (int) this.height;
 
         double boxWidth = getCollisionWidth();
         double boxHeight = getCollisionHeight();
@@ -100,7 +113,7 @@ public abstract class Entity implements Rendering {
     }
 
     @Override
-    public void drawImage(Graphics2D graphics, BufferedImage image, double x, double y, int width, int height) {
+    public void drawImage(Graphics2D graphics, BufferedImage image, double x, double y, double width, double height) {
         double rotation = getRotation();
 
         graphics.rotate(rotation, x + width / 2.0, y + height / 2.0);
@@ -424,7 +437,13 @@ public abstract class Entity implements Rendering {
         }
     }
 
+    public Entities getType() {
+        return this.type;
+    }
+
     public void setPos(double x, double y) {
+        this.prevX = x;
+        this.prevY = y;
         this.x = x;
         this.y = y;
     }
@@ -464,4 +483,81 @@ public abstract class Entity implements Rendering {
     public void setJumpTextures(BufferedImage... jumpTextures) {
         this.jumpTextures = jumpTextures;
     }
+
+    public void setHealth(int health) {
+        this.health = health;
+    }
+
+    public int getHealth() {
+        return this.health;
+    }
+
+    public void setMaxHealth(int maxHealth) {
+        this.maxHealth = maxHealth;
+    }
+
+    public int getMaxHealth() {
+        return this.maxHealth;
+    }
+
+    public boolean isDead() {
+        return this.health <= 0;
+    }
+
+    public byte[] toBytes() throws IOException {
+        try (ByteArrayOutputStream stream = new ByteArrayOutputStream(); DataOutputStream out = new DataOutputStream(stream)) {
+            out.writeInt(this.type.getId());
+            write(out);
+            return stream.toByteArray();
+        }
+    }
+
+    public static Entity fromBytes(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        int id = buffer.getInt();
+
+        Entity entity = Game.getInstance().getWorldManager().getEntitiesRegistry().getEntity(id);
+        entity.read(buffer);
+
+        return entity;
+    }
+
+    protected void read(ByteBuffer buffer) {
+        x = buffer.getDouble();
+        y = buffer.getDouble();
+        isFacingRight = buffer.get() == 1;
+        rotation = buffer.getDouble();
+        health = buffer.getInt();
+        maxHealth = buffer.getInt();
+
+        prevX = x;
+        prevY = y;
+    }
+
+    protected void write(DataOutputStream out) throws IOException {
+        out.writeDouble(x);
+        out.writeDouble(y);
+        out.writeBoolean(isFacingRight);
+        out.writeDouble(rotation);
+        out.writeInt(health);
+        out.writeInt(maxHealth);
+    }
+
+    public abstract Entity copyClass();
+
+    public Entity copy() {
+        Entity clone = copyClass();
+        clone.setPos(x, y);
+        clone.setFacingRight(isFacingRight);
+        clone.setWalking(isWalking);
+        clone.setSprinting(isSprinting);
+        clone.setJumpTextures(jumpTextures);
+        clone.setWalkTextures(walkTextures);
+        clone.setIdleTextures(idleTextures);
+        clone.setHealth(health);
+        clone.setMaxHealth(maxHealth);
+        return clone;
+    }
+
 }

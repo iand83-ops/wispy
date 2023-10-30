@@ -1,7 +1,7 @@
 package fr.nicolas.wispy.game.world.chunks;
 
 import fr.nicolas.wispy.game.blocks.Block;
-import fr.nicolas.wispy.game.blocks.registery.Blocks;
+import fr.nicolas.wispy.game.blocks.registry.Blocks;
 import fr.nicolas.wispy.game.world.WorldManager;
 
 public class Chunk {
@@ -25,6 +25,38 @@ public class Chunk {
     }
     
     public void setBlock(int x, int y, Block block) {
+        if (x < 0 || x >= getWidth() || y < 0 || y >= getHeight()) {
+            return;
+        }
+
+        boolean remove = block.getType() == Blocks.AIR;
+
+        Block currentBlock = this.blocks[x + y * getWidth()];
+
+        if (remove) {
+            if (currentBlock.getDecorationType() != Blocks.AIR) {
+                block = currentBlock.getDecorationType().getBlock();
+                block.setDecorationType(currentBlock.getOriginalType());
+                block.setOriginalType(currentBlock.getOriginalType());
+                block.setBackgroundBlock(true);
+            } else if (currentBlock.getOriginalType() != Blocks.AIR) {
+                block = currentBlock.getOriginalType().getBlock();
+                block.setDecorationType(currentBlock.getOriginalType());
+                block.setOriginalType(currentBlock.getOriginalType());
+                block.setBackgroundBlock(true);
+            }
+        }
+
+        this.blocks[x + y * getWidth()] = block;
+        if (!remove) {
+            block.setDecorationType(currentBlock.isLiquid() ? block.getDecorationType() : currentBlock.getType());
+            block.setOriginalType(currentBlock.getOriginalType());
+        }
+
+        computeLevels(x);
+    }
+
+    public void overwriteBlock(int x, int y, Block block) {
         if (x < 0 || x >= getWidth() || y < 0 || y >= getHeight()) {
             return;
         }

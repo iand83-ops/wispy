@@ -2,7 +2,7 @@ package fr.nicolas.wispy.game.world.worldgen;
 
 import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.OreBlock;
-import fr.nicolas.wispy.game.blocks.registery.Blocks;
+import fr.nicolas.wispy.game.blocks.registry.Blocks;
 import fr.nicolas.wispy.game.world.WorldManager;
 import fr.nicolas.wispy.game.world.chunks.Chunk;
 import fr.nicolas.wispy.game.world.decorations.Decoration;
@@ -61,8 +61,9 @@ public class WorldGeneration {
             for (int y = 0; y < chunkHeight; y++) {
                 if (y >= yLevel) {
                     Block block = Blocks.STONE.getBlock();
-                    block.setOriginalType(Blocks.STONE);
                     chunk.setBlock(x, y, block);
+                    block.setDecorationType(Blocks.STONE);
+                    block.setOriginalType(Blocks.STONE);
                 }
             }
         }
@@ -78,7 +79,7 @@ public class WorldGeneration {
         for (int x = 0; x < chunkWidth; x++) {
             for (int y = 0; y < chunkHeight; y++) {
                 if (chunk.getBlock(x, y).getType() == Blocks.STONE && chunk.getBlock(x, y - 1).getType() == Blocks.AIR) {
-                    chunk.setBlock(x, y, Blocks.GRASS.getBlock());
+                    chunk.overwriteBlock(x, y, Blocks.GRASS.getBlock());
                 }
             }
         }
@@ -87,7 +88,7 @@ public class WorldGeneration {
         for (int x = 0; x < chunkWidth; x++) {
             for (int y = 0; y < chunkHeight; y++) {
                 if (chunk.getBlock(x, y).getType() == Blocks.STONE && chunk.getBlock(x, y - 1).getType() == Blocks.WATER) {
-                    chunk.setBlock(x, y, Blocks.SAND.getBlock());
+                    chunk.overwriteBlock(x, y, Blocks.SAND.getBlock());
                 }
             }
         }
@@ -111,7 +112,7 @@ public class WorldGeneration {
 
                 for (int i = 0; i < layers; i++) {
                     if (y + i < chunkHeight) {
-                        chunk.setBlock(x, y + i, blockToPlace.copy());
+                        chunk.overwriteBlock(x, y + i, blockToPlace.copy());
                     }
                 }
 
@@ -122,7 +123,7 @@ public class WorldGeneration {
                         int blockY = y + gradientY;
                         Block currentBlock = chunk.getBlock(blockX, blockY);
                         if (random.nextBoolean() && (currentBlock.getType() == Blocks.STONE || currentBlock.getType() == Blocks.SAND || currentBlock.getType() == Blocks.DIRT)) {
-                            chunk.setBlock(blockX, blockY, blockToPlace.copy());
+                            chunk.overwriteBlock(blockX, blockY, blockToPlace.copy());
                         }
                     }
                 }
@@ -158,12 +159,9 @@ public class WorldGeneration {
                                 int id = decorationBlocksToPlace[decorationX][decorationY];
                                 if (id != 0 && decorationToPlace.testSpace(chunk, blockX, blockY)) {
                                     Block block = worldManager.getBlockRegistry().getBlock(id);
-                                    Block originalBlock = chunk.getBlock(blockX, blockY);
                                     chunk.setBlock(blockX, blockY, block);
                                     if (decorationToPlace.areBlocksNonCollidable()) {
                                         block.setBackgroundBlock(true);
-                                    } else {
-                                        block.setOriginalType(originalBlock.getType());
                                     }
                                 }
                             }

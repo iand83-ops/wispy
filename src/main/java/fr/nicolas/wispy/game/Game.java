@@ -3,8 +3,10 @@ package fr.nicolas.wispy.game;
 import fr.nicolas.wispy.Runner;
 import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.entities.Player;
+import fr.nicolas.wispy.game.items.ItemStack;
 import fr.nicolas.wispy.game.render.Camera;
 import fr.nicolas.wispy.game.world.WorldManager;
+import fr.nicolas.wispy.ui.IngameUI;
 import fr.nicolas.wispy.ui.Window;
 import fr.nicolas.wispy.ui.menu.Menu;
 import fr.nicolas.wispy.ui.menu.PauseMenu;
@@ -16,7 +18,7 @@ import java.awt.*;
 import java.awt.event.*;
 
 
-public class Game implements KeyListener, MouseListener, MouseMotionListener {
+public class Game implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
 
     private static Game instance;
 
@@ -27,6 +29,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
     private final WorldManager worldManager;
     private final Player player;
     private final Camera camera;
+    private final IngameUI ingameUI;
 
     private final Runner runner;
 
@@ -57,6 +60,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
         this.camera = new Camera();
         this.worldManager = new WorldManager(this, this.camera);
         this.player = new Player(this.worldManager);
+        this.ingameUI = new IngameUI();
 
         this.rendererScreen = new MainMenuRenderer(window.getBounds(), this);
 
@@ -90,7 +94,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
 
         if (System.currentTimeMillis() - lastGameTick >= 1000 / 20) {
             lastGameTick = System.currentTimeMillis();
-            worldManager.tick(gameTick);
+            worldManager.gameTick(gameTick);
             gameTick++;
         }
 
@@ -120,10 +124,22 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
             blockBreakStartTime = -1;
         }
 
+        ItemStack stack = player.getInventory().getItem(ingameUI.getSelectedSlot());
+        if (stack != null) {
+            if (rightClickPressed && selectedBlock != null) {
+                int x = (int) Math.floor((double) mouseLocation.x / gameRenderer.getBlockSize() + camera.getX());
+                int y = (int) Math.floor((double) mouseLocation.y / gameRenderer.getBlockSize() + camera.getY());
+
+                stack.getItem().useItem(worldManager, stack, selectedBlock, x, y);
+            }
+        }
+
         player.tick(elapsedTime);
 
         camera.setX(player.getX() - window.getWidth() / 2.0F / gameRenderer.getBlockSize());
         camera.setY(player.getY() - window.getHeight() / 2.0F / gameRenderer.getBlockSize());
+
+        worldManager.gameTick(elapsedTime);
     }
 
     @Override
@@ -134,6 +150,10 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
             } else {
                 this.closeMenu();
             }
+        }
+
+        if (ingameUI.keyPressed(e)) {
+            return;
         }
 
         if (e.getKeyCode() == KeyEvent.VK_D || e.getKeyCode() == KeyEvent.VK_RIGHT) {
@@ -182,6 +202,10 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
 
     @Override
     public void mousePressed(MouseEvent e) {
+        if (ingameUI.mousePressed(e)) {
+            return;
+        }
+
         if (e.getButton() == MouseEvent.BUTTON1) {
             leftClickPressed = true;
         } else if (e.getButton() == MouseEvent.BUTTON3) {
@@ -206,6 +230,11 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
     @Override
     public void mouseMoved(MouseEvent e) {
         mouseLocation = e.getPoint();
+    }
+
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        ingameUI.mouseWheelMoved(e);
     }
 
     public void start() {
@@ -250,6 +279,10 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
         return this.worldManager;
     }
 
+    public IngameUI getIngameUI() {
+        return this.ingameUI;
+    }
+
     public void setRendererScreen(RendererScreen rendererScreen) {
         this.rendererScreen = rendererScreen;
     }
@@ -289,4 +322,5 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener {
     public long getGameTick() {
         return this.gameTick;
     }
+
 }

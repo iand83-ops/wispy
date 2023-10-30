@@ -1,6 +1,6 @@
 package fr.nicolas.wispy.game.world.decorations;
 
-import fr.nicolas.wispy.game.blocks.registery.Blocks;
+import fr.nicolas.wispy.game.blocks.registry.Blocks;
 import fr.nicolas.wispy.game.world.chunks.Chunk;
 
 import java.util.Random;

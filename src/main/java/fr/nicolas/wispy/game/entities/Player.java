@@ -1,17 +1,24 @@
 package fr.nicolas.wispy.game.entities;
 
+import fr.nicolas.wispy.game.entities.registry.Entities;
+import fr.nicolas.wispy.game.inventory.Inventory;
 import fr.nicolas.wispy.game.utils.Assets;
 import fr.nicolas.wispy.game.world.WorldManager;
 
 public class Player extends Entity {
 
     protected boolean isFacingRightPrev = false;
+    private Inventory inventory = new Inventory(9 * 4);
 
     public Player(WorldManager worldManager) {
-        super(worldManager, 1.0, 2.0);
+        super(Entities.PLAYER, worldManager, 1.0, 2.0);
         this.setIdleTextures(Assets.get("player/idle"));
         this.setWalkTextures(Assets.get("player/idle"), Assets.get("player/walk_1"), Assets.get("player/walk_2"), Assets.get("player/walk_1"));
         this.setJumpTextures(Assets.get("player/walk_2"));
+    }
+
+    public Inventory getInventory() {
+        return this.inventory;
     }
 
     @Override
@@ -107,4 +114,8 @@ public class Player extends Entity {
         return this.groundCollision != null && !useHeightForFacing();
     }
 
+    @Override
+    public Entity copyClass() {
+        return new Player(worldManager);
+    }
 }

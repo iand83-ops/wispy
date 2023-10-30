@@ -1,6 +1,7 @@
 package fr.nicolas.wispy.game.utils;
 
 import fr.nicolas.wispy.game.Game;
+import fr.nicolas.wispy.game.entities.Entity;
 import fr.nicolas.wispy.game.render.Vector2D;
 
 import java.awt.*;
@@ -36,6 +37,15 @@ public class MathUtils {
     public static double align(double value) {
         double blockSize = Game.getInstance().getGameRenderer().getBlockSize();
         return (int) (value * blockSize) / blockSize;
+    }
+
+    public static double distance(Entity entity1, Entity entity2) {
+        return distance(entity1.getX() + entity1.getWidth() / 2, entity1.getY() - entity1.getWidth() / 2,
+                entity2.getX() + entity2.getWidth() / 2, entity2.getY() - entity2.getWidth() / 2);
+    }
+
+    public static double distance(double x1, double y1, double x2, double y2) {
+        return Math.sqrt(Math.pow(x2 - x1, 2)  + Math.pow(y2 - y1, 2));
     }
 
 }

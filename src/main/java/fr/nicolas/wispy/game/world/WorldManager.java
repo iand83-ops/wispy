@@ -3,8 +3,12 @@ package fr.nicolas.wispy.game.world;
 import fr.nicolas.wispy.Runner;
 import fr.nicolas.wispy.game.Game;
 import fr.nicolas.wispy.game.blocks.Block;
-import fr.nicolas.wispy.game.blocks.registery.BlockRegistry;
-import fr.nicolas.wispy.game.blocks.registery.Blocks;
+import fr.nicolas.wispy.game.blocks.registry.Blocks;
+import fr.nicolas.wispy.game.blocks.registry.BlocksRegistry;
+import fr.nicolas.wispy.game.entities.Entity;
+import fr.nicolas.wispy.game.entities.Player;
+import fr.nicolas.wispy.game.entities.registry.EntitiesRegistry;
+import fr.nicolas.wispy.game.items.registry.ItemsRegistry;
 import fr.nicolas.wispy.game.render.Camera;
 import fr.nicolas.wispy.game.utils.Assets;
 import fr.nicolas.wispy.game.world.chunks.Chunk;
@@ -20,6 +24,9 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -37,8 +44,13 @@ public class WorldManager {
 	private final Game game;
 	private final Camera camera;
 
-	private final BlockRegistry blockRegistry;
+	private final BlocksRegistry blockRegistry;
+	private final ItemsRegistry itemRegistry;
+	private final EntitiesRegistry entitiesRegistry;
+
 	private final WorldGeneration worldGeneration;
+
+	private final ArrayList<Entity> entities = new ArrayList<>();
 
 	private JSONObject worldData = new JSONObject();
 
@@ -51,13 +63,31 @@ public class WorldManager {
 	public WorldManager(Game game, Camera camera) {
 		this.game = game;
 		this.camera = camera;
-		this.blockRegistry = new BlockRegistry();
+		this.blockRegistry = new BlocksRegistry();
+		this.itemRegistry = new ItemsRegistry();
+		this.entitiesRegistry = new EntitiesRegistry(this);
 		this.chunks = new Chunk[3];
 		this.worldGeneration = new WorldGeneration(this, 0);
 
 		for (int i = 0; i < 10; i++) {
 			this.destroyStageTextures[i] = Assets.get("destroy/destroy_stage_" + i);
 		}
+	}
+
+	public void gameTick(double elapsedTime) {
+		for (Entity entity : entities) {
+			entity.tick(elapsedTime);
+		}
+
+		entities.removeIf(entity -> entity.isDead() && !(entity instanceof Player));
+	}
+
+	public void addEntity(Entity entity) {
+		this.entities.add(entity);
+	}
+
+	public void removeEntity(Entity entity) {
+		this.entities.remove(entity);
 	}
 
 	public void loadWorld(String worldName) {
@@ -233,6 +263,23 @@ public class WorldManager {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+		try (DataOutputStream dos = new DataOutputStream(new GZIPOutputStream(Files.newOutputStream(new File(dimensionFolder, index + ".entities").toPath())))) {
+			List<Entity> chunkEntities = entities.stream()
+					.filter(entity -> entity.getX() >= index * CHUNK_WIDTH && entity.getX() < (index + 1) * CHUNK_WIDTH)
+					.collect(Collectors.toList());
+
+			dos.writeInt(chunkEntities.size());
+			for (Entity entity : chunkEntities) {
+				byte[] entityBytes = entity.toBytes();
+				dos.writeInt(entityBytes.length);
+				dos.write(entityBytes);
+			}
+
+			entities.removeAll(chunkEntities);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	private Chunk loadChunk(int index) {
@@ -270,10 +317,29 @@ public class WorldManager {
 			chunk = worldGeneration.generateChunk(index);
 		}
 
+		File entitiesFile = new File(dimensionFolder, index + ".entities");
+		if (entitiesFile.isFile()) {
+			try (DataInputStream dis = new DataInputStream(new GZIPInputStream(Files.newInputStream(entitiesFile.toPath())))) {
+				int arrayLength = dis.readInt();
+				for (int i = 0; i < arrayLength; i++) {
+					int entityBytesLength = dis.readInt();
+					byte[] entityBytes = new byte[entityBytesLength];
+					dis.readFully(entityBytes);
+					try {
+						this.entities.add(Entity.fromBytes(entityBytes));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
 		return chunk;
 	}
 
-	public void tick(long gameTick) {
+	public void gameTick(long gameTick) {
 		for (int i = 0; i < this.chunks.length; i++) {
 			Chunk chunk = this.chunks[i];
 			if (chunk != null) {
@@ -306,13 +372,19 @@ public class WorldManager {
 		this.chunks[index - this.leftChunkIndex].setBlock(x - index * CHUNK_WIDTH, y, block);
 	}
 
-	public void renderChunks(Graphics2D g, double width, double height, boolean fluidLayer) {
+	public void render(Graphics2D g, double width, double height, boolean liquidLayer) {
 		for (int i = 0; i < this.chunks.length; i++) {
-			renderChunk(g, this.chunks[i], this.leftChunkIndex + i, width, height, fluidLayer);
+			renderChunk(g, this.chunks[i], this.leftChunkIndex + i, width, height, liquidLayer);
+		}
+
+		if (!liquidLayer) {
+			for (Entity entity : entities) {
+				entity.render(g);
+			}
 		}
 	}
 
-	private void renderChunk(Graphics2D g, Chunk chunk, int chunkIndex, double width, double height, boolean fluidLayer) {
+	private void renderChunk(Graphics2D g, Chunk chunk, int chunkIndex, double width, double height, boolean liquidLayer) {
 		if (chunk == null || chunk.getBlocks() == null) {
 			return;
 		}
@@ -344,11 +416,21 @@ public class WorldManager {
 			for (int y = startingPointY; y < Math.min(camera.getBlockY() + 1 + height - chunkY, chunkHeight); y++) {
 				Block block = chunk.getBlock(x, y);
 
-				if (fluidLayer && !block.isLiquid()) {
+				if (liquidLayer && !block.isLiquid()) {
 					continue;
 				}
 
 				if (block.getType() != Blocks.AIR) {
+					Block decorationBlock = block.getDecorationType().getBlock();
+					Block originalBlock = block.getOriginalType().getBlock();
+					if (block.isLiquid() && !liquidLayer) {
+						if (decorationBlock.isSolid()) {
+							block = decorationBlock;
+						} else if (originalBlock.isSolid()) {
+							block = originalBlock;
+						}
+					}
+
 					float darknessOpacity = 0;
 
 					if (y >= landLevels[x]) {
@@ -359,7 +441,7 @@ public class WorldManager {
 
 						darknessOpacity = (y - landLevels[x]) / 10.0F;
 						darknessOpacity = Math.max(minOpacity, Math.min(1.0F, darknessOpacity));
-					} else if (block.isLiquid() && y >= fluidLevels[x] && fluidLayer) {
+					} else if (block.isLiquid() && y >= fluidLevels[x] && liquidLayer) {
 						darknessOpacity = (y - fluidLevels[x]) / 24.0F;
 					}
 
@@ -379,14 +461,14 @@ public class WorldManager {
 						darknessOpacity += 0.3F;
 					}
 
-					if (fluidLayer || block.renderAsSolidColor()) {
+					if (liquidLayer || block.renderAsSolidColor()) {
+
 						int color = block.getSolidColor();
 
 						int red = (color >> 16) & 0xFF;
 						int green = (color >> 8) & 0xFF;
 						int blue = color & 0xFF;
 
-						// Blend with black based on darknessOpacity
 						int blendedRed = Math.max(0, Math.min((int) (red * (1 - darknessOpacity)), 255));
 						int blendedGreen = Math.max(0, Math.min((int) (green * (1 - darknessOpacity)), 255));
 						int blendedBlue = Math.max(0, Math.min((int) (blue * (1 - darknessOpacity)), 255));
@@ -443,10 +525,10 @@ public class WorldManager {
 		Block topBlock = chunk.getBlock(blockX - chunkX, blockY - chunkY - 1);
 		Block bottomBlock = chunk.getBlock(blockX - chunkX, blockY - chunkY + 1);
 
-		if (!block.canBreak() && !leftBlock.canBreak() && !rightBlock.canBreak() && !topBlock.canBreak() && !bottomBlock.canBreak()) {
-			game.setSelectedBlock(null);
-			return;
-		} else if (block.canBreak() && leftBlock.canBreak() && rightBlock.canBreak() && topBlock.canBreak() && bottomBlock.canBreak()) {
+		boolean canBreak = block.canBreak() && (!leftBlock.canBreak() || !rightBlock.canBreak() || !topBlock.canBreak() || !bottomBlock.canBreak());
+		boolean canReplace = block.canReplace() && (!leftBlock.canReplace() || !rightBlock.canReplace() || !topBlock.canReplace() || !bottomBlock.canReplace());
+
+		if (!canBreak && !canReplace) {
 			game.setSelectedBlock(null);
 			return;
 		}
@@ -455,10 +537,12 @@ public class WorldManager {
 			game.setSelectedBlock(block);
 		}
 
-		if (block.canBreak()) {
+		if (canBreak && !canReplace) {
 			g.setColor(new Color(150, 64, 7, 150));
-		} else {
+		} else if (!canBreak) {
 			g.setColor(new Color(7, 64, 150, 150));
+		} else {
+			g.setColor(new Color(150, 7, 150, 150));
 		}
 		g.setStroke(new BasicStroke(3.0F / blockSize));
 		g.drawRect(blockX, blockY, 1, 1);
@@ -466,19 +550,25 @@ public class WorldManager {
 		if (game.getBlockBreakStartTime() > 0) {
 			int destroyStage = (int) Math.floor((System.currentTimeMillis() - game.getBlockBreakStartTime()) / 100.0 * 10);
 			if (destroyStage >= destroyStageTextures.length) {
+				game.getSelectedBlock().onBreak(this, blockX, blockY);
 				game.setSelectedBlock(null);
-
-				Block replacedBlock = block.getOriginalType().getBlock();
-				replacedBlock.setBackgroundBlock(true);
-				chunk.setBlock(blockX - chunkX, blockY - chunkY, replacedBlock);
+				chunk.setBlock(blockX - chunkX, blockY - chunkY, Blocks.AIR.getBlock());
 			} else {
 				g.drawImage(destroyStageTextures[destroyStage], blockX, blockY, 1, 1, null);
 			}
 		}
 	}
 
-	public BlockRegistry getBlockRegistry() {
+	public BlocksRegistry getBlockRegistry() {
 		return this.blockRegistry;
+	}
+
+	public ItemsRegistry getItemRegistry() {
+		return this.itemRegistry;
+	}
+
+	public EntitiesRegistry getEntitiesRegistry() {
+		return this.entitiesRegistry;
 	}
 
 	public Chunk[] getChunks() {

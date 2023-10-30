@@ -6,6 +6,7 @@ import fr.nicolas.wispy.game.render.Camera;
 import fr.nicolas.wispy.game.utils.Assets;
 import fr.nicolas.wispy.game.utils.MathUtils;
 import fr.nicolas.wispy.game.world.WorldManager;
+import fr.nicolas.wispy.ui.IngameUI;
 import fr.nicolas.wispy.ui.Window;
 
 import java.awt.*;
@@ -23,6 +24,7 @@ public class GameRenderer extends RendererScreen {
 	private final Player player;
 	private final Camera camera;
 	private final WorldManager worldManager;
+	private final IngameUI ingameUI;
 
 	public GameRenderer(Rectangle frameBounds, Game game) {
 		super(frameBounds);
@@ -31,10 +33,12 @@ public class GameRenderer extends RendererScreen {
 		this.player = game.getPlayer();
 		this.camera = game.getCamera();
 		this.worldManager = game.getWorldManager();
+		this.ingameUI = game.getIngameUI();
 
 		addKeyListener(game);
 		addMouseListener(game);
 		addMouseMotionListener(game);
+		addMouseWheelListener(game);
 		setFocusable(true);
 		setDoubleBuffered(true);
 
@@ -63,11 +67,11 @@ public class GameRenderer extends RendererScreen {
 		graphics.scale(blockSize, blockSize);
 		graphics.translate(-worldCameraX, -worldCameraY);
 
-		worldManager.renderChunks(graphics, this.getWidth() / (double) blockSize, this.getHeight() / (double) blockSize, false);
+		worldManager.render(graphics, this.getWidth() / (double) blockSize, this.getHeight() / (double) blockSize, false);
 
 		player.render(graphics);
 
-		worldManager.renderChunks(graphics, this.getWidth() / (double) blockSize, this.getHeight() / (double) blockSize, true);
+		worldManager.render(graphics, this.getWidth() / (double) blockSize, this.getHeight() / (double) blockSize, true);
 
 		if (game.getMenu() == null) {
 			worldManager.renderSelection(graphics, blockSize, game.getMouseLocation());
@@ -77,6 +81,8 @@ public class GameRenderer extends RendererScreen {
 
 		graphics.translate(worldCameraX, worldCameraY);
 		graphics.scale(1.0 / blockSize, 1.0 / blockSize);
+
+		this.ingameUI.render(game, graphics, this.getWidth(), this.getHeight());
 
 		if (game.getMenu() != null) {
 			game.getMenu().render(graphics, this.getWidth(), this.getHeight());
