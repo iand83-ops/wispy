@@ -8,8 +8,10 @@ import fr.nicolas.wispy.game.blocks.registry.BlocksRegistry;
 import fr.nicolas.wispy.game.entities.Entity;
 import fr.nicolas.wispy.game.entities.Player;
 import fr.nicolas.wispy.game.entities.registry.EntitiesRegistry;
+import fr.nicolas.wispy.game.items.ItemStack;
 import fr.nicolas.wispy.game.items.registry.ItemsRegistry;
 import fr.nicolas.wispy.game.render.Camera;
+import fr.nicolas.wispy.game.render.Vector2D;
 import fr.nicolas.wispy.game.utils.Assets;
 import fr.nicolas.wispy.game.world.chunks.Chunk;
 import fr.nicolas.wispy.game.world.worldgen.WorldGeneration;
@@ -112,7 +114,7 @@ public class WorldManager {
 					worldTimeReference = this.worldData.getLong("time");
 				}
 
-				teleportPlayerToSpawnPoint();
+				loadWorldData();
 
 				this.leftChunkIndex = (int) Math.floor(game.getPlayer().getX() / CHUNK_WIDTH);
 
@@ -121,11 +123,11 @@ public class WorldManager {
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
-				teleportPlayerToSpawnPoint();
+				loadWorldData();
 			}
 		} else {
 			this.worldData = new JSONObject();
-			teleportPlayerToSpawnPoint();
+			loadWorldData();
 		}
 
 		this.loaded = true;
@@ -159,19 +161,50 @@ public class WorldManager {
 		playerData.put("y", this.game.getPlayer().getY());
 		playerData.put("dimension", 0);
 
+		JSONObject inventory = new JSONObject();
+		for (int i = 0; i < this.game.getPlayer().getInventory().getSize(); i++) {
+			ItemStack itemStack = this.game.getPlayer().getInventory().getItem(i);
+			if (itemStack != null) {
+				JSONObject itemStackData = new JSONObject();
+				itemStackData.put("id", itemStack.getItem().getId());
+				itemStackData.put("amount", itemStack.getAmount());
+				inventory.put("" + i, itemStackData);
+			}
+		}
+
+		playerData.put("inventory", inventory);
+
 		this.worldData.put("player", playerData);
 		this.worldData.put("time", this.worldTimeReference);
 	}
 
-	private void teleportPlayerToSpawnPoint() {
+	public void loadWorldData() {
 		if (this.worldData.has("player")) {
 			JSONObject playerData = this.worldData.getJSONObject("player");
 			if (playerData != null && playerData.has("x") && playerData.has("y")) {
 				this.game.getPlayer().setPos(playerData.getDouble("x"), playerData.getDouble("y"));
-				return;
+			} else {
+				teleportPlayerToSpawnPoint();
 			}
-		}
 
+			if (playerData != null && playerData.has("inventory")) {
+				JSONObject inventory = playerData.getJSONObject("inventory");
+				for (int i = 0; i < this.game.getPlayer().getInventory().getSize(); i++) {
+					if (inventory.has("" + i)) {
+						JSONObject itemStackData = inventory.getJSONObject("" + i);
+						int id = itemStackData.getInt("id");
+						int amount = itemStackData.getInt("amount");
+						ItemStack itemStack = new ItemStack(this.itemRegistry.getItem(id), amount);
+						this.game.getPlayer().getInventory().setItem(i, itemStack);
+					}
+				}
+			}
+		} else {
+			teleportPlayerToSpawnPoint();
+		}
+	}
+
+	private void teleportPlayerToSpawnPoint() {
 		for (int i = 0; i < this.chunks.length; i++) {
 			int chunkX = this.leftChunkIndex + i;
 			Chunk chunk = this.chunks[i];
@@ -420,121 +453,128 @@ public class WorldManager {
 					continue;
 				}
 
-				if (block.getType() != Blocks.AIR) {
-					Block decorationBlock = block.getDecorationType().getBlock();
-					Block originalBlock = block.getOriginalType().getBlock();
-					if (block.isLiquid() && !liquidLayer) {
-						if (decorationBlock.isSolid()) {
-							block = decorationBlock;
-						} else if (originalBlock.isSolid()) {
-							block = originalBlock;
+				boolean wasLiquid = false;
+
+				Block decorationBlock = block.getDecorationType().getBlock();
+				Block originalBlock = block.getOriginalType().getBlock();
+				if (block.isLiquid() && !liquidLayer) {
+					if (decorationBlock.getType() != Blocks.AIR) {
+						block = decorationBlock;
+						decorationBlock = originalBlock;
+						originalBlock = null;
+						wasLiquid = true;
+					} else if (originalBlock.getType() != Blocks.AIR) {
+						block = originalBlock;
+						decorationBlock = null;
+						originalBlock = null;
+						wasLiquid = true;
+					}
+				}
+
+				float darknessOpacity = 0;
+
+				if (y >= landLevels[x]) {
+					float minOpacity = 0;
+					if (y >= fluidLevels[x] && fluidLevels[x] != 0) {
+						minOpacity = Math.max(0, Math.min(255, (y - fluidLevels[x]) / 24.0F));
+					}
+
+					darknessOpacity = (y - landLevels[x]) / 10.0F;
+					darknessOpacity = Math.max(minOpacity, Math.min(1.0F, darknessOpacity));
+				} else if (block.isLiquid() && y >= fluidLevels[x] && liquidLayer) {
+					darknessOpacity = (y - fluidLevels[x]) / 24.0F;
+				}
+
+				double dx = blockX - game.getPlayer().getX();
+				double dy = y - game.getPlayer().getY();
+				double distance = Math.sqrt(dx * dx + dy * dy);
+				double circleRadius = 10.0;
+
+				if (distance < circleRadius) {
+					float distanceFactor = 1 - (float) ((circleRadius - distance) / circleRadius);
+					darknessOpacity = Math.min(darknessOpacity, distanceFactor * distanceFactor);
+				}
+
+				darknessOpacity += 0.6F * timeFactor;
+
+				if (block.isBackgroundBlock() && !block.isTransparent()) {
+					darknessOpacity += 0.3F;
+				}
+
+				if (liquidLayer || block.renderAsSolidColor()) {
+					int color = block.getSolidColor();
+
+					int red = (color >> 16) & 0xFF;
+					int green = (color >> 8) & 0xFF;
+					int blue = color & 0xFF;
+
+					int blendedRed = Math.max(0, Math.min((int) (red * (1 - darknessOpacity)), 255));
+					int blendedGreen = Math.max(0, Math.min((int) (green * (1 - darknessOpacity)), 255));
+					int blendedBlue = Math.max(0, Math.min((int) (blue * (1 - darknessOpacity)), 255));
+
+					g.setColor(new Color(blendedRed, blendedGreen, blendedBlue, 175));
+					g.fillRect(blockX, y, 1, 1);
+				} else {
+					if (darknessOpacity < 1.0F && block.getType() != Blocks.AIR) {
+						if (block.isTransparent()) {
+							float darkness = darknessOpacity;
+							Block background = null;
+
+							if (decorationBlock != null && !decorationBlock.isTransparent()) {
+								background = decorationBlock;
+							} else if (originalBlock != null && !originalBlock.isTransparent()) {
+								background = originalBlock;
+							}
+
+							if (background != null) {
+								darkness += 0.15F;
+
+								if (darkness < 1.0F) {
+									g.drawImage(background.getTexture(), blockX, y, 1, 1, null);
+								}
+
+								if (!wasLiquid) {
+									g.setColor(new Color(0, 0, 0, Math.min(1.0F, darkness)));
+									g.fillRect(blockX, y, 1, 1);
+								}
+							}
 						}
+
+						g.drawImage(block.getTexture(), blockX, y, 1, 1, null);
 					}
 
-					float darknessOpacity = 0;
-
-					if (y >= landLevels[x]) {
-						float minOpacity = 0;
-						if (y >= fluidLevels[x] && fluidLevels[x] != 0) {
-							minOpacity = Math.max(0, Math.min(255, (y - fluidLevels[x]) / 24.0F));
-						}
-
-						darknessOpacity = (y - landLevels[x]) / 10.0F;
-						darknessOpacity = Math.max(minOpacity, Math.min(1.0F, darknessOpacity));
-					} else if (block.isLiquid() && y >= fluidLevels[x] && liquidLayer) {
-						darknessOpacity = (y - fluidLevels[x]) / 24.0F;
-					}
-
-					double dx = blockX - game.getPlayer().getX();
-					double dy = y - game.getPlayer().getY();
-					double distance = Math.sqrt(dx * dx + dy * dy);
-					double circleRadius = 10.0;
-
-					if (distance < circleRadius) {
-						float distanceFactor = 1 - (float) ((circleRadius - distance) / circleRadius);
-						darknessOpacity = Math.min(darknessOpacity, distanceFactor * distanceFactor);
-					}
-
-					darknessOpacity += 0.6F * timeFactor;
-
-					if (block.isBackgroundBlock()) {
-						darknessOpacity += 0.3F;
-					}
-
-					if (liquidLayer || block.renderAsSolidColor()) {
-
-						int color = block.getSolidColor();
-
-						int red = (color >> 16) & 0xFF;
-						int green = (color >> 8) & 0xFF;
-						int blue = color & 0xFF;
-
-						int blendedRed = Math.max(0, Math.min((int) (red * (1 - darknessOpacity)), 255));
-						int blendedGreen = Math.max(0, Math.min((int) (green * (1 - darknessOpacity)), 255));
-						int blendedBlue = Math.max(0, Math.min((int) (blue * (1 - darknessOpacity)), 255));
-
-						g.setColor(new Color(blendedRed, blendedGreen, blendedBlue, 175));
-						g.fillRect(blockX, y, 1, 1);
-					} else {
-						if (darknessOpacity < 1.0F) {
-							g.drawImage(block.getTexture(), blockX, y, 1, 1, null);
-						}
-
-						g.setColor(new Color(0, 0, 0, Math.min(1.0F, darknessOpacity)));
-						g.fillRect(blockX, y, 1, 1);
-					}
+					g.setColor(new Color(0, 0, 0, Math.min(1.0F, darknessOpacity)));
+					g.fillRect(blockX, y, 1, 1);
 				}
 			}
 		}
 	}
 
-	public void renderSelection(Graphics2D g, int blockSize, Point mouseLocation) {
+	public void renderSelection(Graphics2D g, int blockSize, Vector2D mouseLocation) {
 		int blockX = (int) Math.floor(camera.getX() + mouseLocation.x / (double) blockSize);
 		int blockY = (int) Math.floor(camera.getY() + mouseLocation.y / (double) blockSize);
 
-		int chunkIndex = (int) Math.floor(blockX / (double) CHUNK_WIDTH);
-
-		if (chunkIndex < this.leftChunkIndex || chunkIndex >= this.leftChunkIndex + this.chunks.length) {
-			return;
-		}
-
-		Chunk chunk = this.chunks[chunkIndex - this.leftChunkIndex];
-
-		int chunkWidth = chunk.getWidth();
-		int chunkX = chunkWidth * chunkIndex;
-
-		if (blockX < chunkX || blockX >= chunkX + chunkWidth) {
-			return;
-		}
-
-		int chunkHeight = chunk.getHeight();
-		int chunkY = 0;
-
-		if (blockY < chunkY || blockY >= chunkY + chunkHeight) {
-			return;
-		}
-
 		if (Math.abs(blockX - game.getPlayer().getX()) > 10 || Math.abs(blockY - game.getPlayer().getY()) > 10) {
-			game.setSelectedBlock(null);
+			game.setSelectedBlock(null, 0, 0);
 			return;
 		}
 
-		Block block = chunk.getBlock(blockX - chunkX, blockY - chunkY);
-		Block leftBlock = chunk.getBlock(blockX - chunkX - 1, blockY - chunkY);
-		Block rightBlock = chunk.getBlock(blockX - chunkX + 1, blockY - chunkY);
-		Block topBlock = chunk.getBlock(blockX - chunkX, blockY - chunkY - 1);
-		Block bottomBlock = chunk.getBlock(blockX - chunkX, blockY - chunkY + 1);
+		Block block = getBlock(blockX, blockY);
+		Block leftBlock = getBlock(blockX - 1, blockY);
+		Block rightBlock = getBlock(blockX + 1, blockY);
+		Block topBlock = getBlock(blockX, blockY - 1);
+		Block bottomBlock = getBlock(blockX, blockY + 1);
 
 		boolean canBreak = block.canBreak() && (!leftBlock.canBreak() || !rightBlock.canBreak() || !topBlock.canBreak() || !bottomBlock.canBreak());
 		boolean canReplace = block.canReplace() && (!leftBlock.canReplace() || !rightBlock.canReplace() || !topBlock.canReplace() || !bottomBlock.canReplace());
 
 		if (!canBreak && !canReplace) {
-			game.setSelectedBlock(null);
+			game.setSelectedBlock(null, 0, 0);
 			return;
 		}
 
 		if (game.getSelectedBlock() != block) {
-			game.setSelectedBlock(block);
+			game.setSelectedBlock(block, blockX, blockY);
 		}
 
 		if (canBreak && !canReplace) {
@@ -548,11 +588,11 @@ public class WorldManager {
 		g.drawRect(blockX, blockY, 1, 1);
 
 		if (game.getBlockBreakStartTime() > 0) {
-			int destroyStage = (int) Math.floor((System.currentTimeMillis() - game.getBlockBreakStartTime()) / 100.0 * 10);
+			int destroyStage = (int) Math.floor((System.currentTimeMillis() - game.getBlockBreakStartTime()) / 500.0 * 10);
 			if (destroyStage >= destroyStageTextures.length) {
 				game.getSelectedBlock().onBreak(this, blockX, blockY);
-				game.setSelectedBlock(null);
-				chunk.setBlock(blockX - chunkX, blockY - chunkY, Blocks.AIR.getBlock());
+				game.setSelectedBlock(null, 0, 0);
+				setBlock(blockX, blockY, Blocks.AIR.getBlock());
 			} else {
 				g.drawImage(destroyStageTextures[destroyStage], blockX, blockY, 1, 1, null);
 			}
@@ -580,7 +620,7 @@ public class WorldManager {
 	}
 
 	public long getTime() {
-		return (System.currentTimeMillis() - this.worldTimeReference) % 20_000;
+		return (System.currentTimeMillis() - this.worldTimeReference + DAY_DURATION / 2 + DAY_DURATION / 4) % DAY_DURATION;
 	}
 
 	public float getTimeFactor() {

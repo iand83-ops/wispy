@@ -13,14 +13,33 @@ public class Inventory {
         this.items = new ItemStack[size];
     }
 
-    public boolean addItem(Item itemStack) {
+    public boolean addItem(Item item) {
         for (int i = 0; i < this.items.length; i++) {
             if (this.items[i] == null) {
-                this.items[i] = new ItemStack(itemStack, 1);
+                this.items[i] = new ItemStack(item, 1);
                 return true;
-            } else if (this.items[i].getItem().getId() == itemStack.getId() && this.items[i].getAmount() < ItemStack.MAX_STACK_SIZE) {
+            } else if (this.items[i].getItem().getId() == item.getId() && this.items[i].getAmount() < ItemStack.MAX_STACK_SIZE) {
                 this.items[i].setAmount(this.items[i].getAmount() + 1);
                 return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean addItemStack(ItemStack stack) {
+        for (int i = 0; i < this.items.length; i++) {
+            if (this.items[i] == null) {
+                this.items[i] = stack;
+                return true;
+            } else if (this.items[i].getItem().getId() == stack.getItem().getId() && this.items[i].getAmount() < ItemStack.MAX_STACK_SIZE) {
+                int amount = this.items[i].getAmount() + stack.getAmount();
+                if (amount > ItemStack.MAX_STACK_SIZE) {
+                    this.items[i].setAmount(ItemStack.MAX_STACK_SIZE);
+                    stack.setAmount(amount - ItemStack.MAX_STACK_SIZE);
+                } else {
+                    this.items[i].setAmount(amount);
+                    return true;
+                }
             }
         }
         return false;

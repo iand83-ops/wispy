@@ -16,6 +16,10 @@ public abstract class Decoration {
 
     public abstract double getChance();
 
-    public abstract boolean areBlocksNonCollidable();
+    public abstract boolean areBackgroundBlocks();
+
+    public boolean isGoingDown() {
+        return false;
+    }
 
 }

@@ -51,6 +51,14 @@ public class GameRenderer extends RendererScreen {
 	}
 
 	@Override
+	public void close() {
+		removeKeyListener(game);
+		removeMouseListener(game);
+		removeMouseMotionListener(game);
+		removeMouseWheelListener(game);
+	}
+
+	@Override
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
 

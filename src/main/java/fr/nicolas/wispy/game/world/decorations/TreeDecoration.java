@@ -44,7 +44,7 @@ public class TreeDecoration extends Decoration {
     }
 
     @Override
-    public boolean areBlocksNonCollidable() {
+    public boolean areBackgroundBlocks() {
         return true;
     }
 }

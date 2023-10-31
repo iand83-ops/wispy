@@ -1,6 +1,7 @@
 package fr.nicolas.wispy.game.world.chunks;
 
 import fr.nicolas.wispy.game.blocks.Block;
+import fr.nicolas.wispy.game.blocks.ReplaceableBlock;
 import fr.nicolas.wispy.game.blocks.registry.Blocks;
 import fr.nicolas.wispy.game.world.WorldManager;
 
@@ -48,7 +49,7 @@ public class Chunk {
         }
 
         this.blocks[x + y * getWidth()] = block;
-        if (!remove) {
+        if (!remove && !(currentBlock instanceof ReplaceableBlock)) {
             block.setDecorationType(currentBlock.isLiquid() ? block.getDecorationType() : currentBlock.getType());
             block.setOriginalType(currentBlock.getOriginalType());
         }

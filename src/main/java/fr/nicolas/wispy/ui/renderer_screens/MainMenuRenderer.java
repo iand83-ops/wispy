@@ -119,6 +119,13 @@ public class MainMenuRenderer extends RendererScreen implements MouseListener, M
 	}
 
 	@Override
+	public void close() {
+		this.removeMouseListener(this);
+		this.removeMouseMotionListener(this);
+		this.setFocusable(false);
+	}
+
+	@Override
 	public void resize(Rectangle frameBounds) {
 		this.frameBounds = frameBounds;
 

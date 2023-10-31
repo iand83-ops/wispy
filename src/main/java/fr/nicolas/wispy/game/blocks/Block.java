@@ -125,7 +125,11 @@ public class Block {
 	}
 
 	public boolean isSolidOrLiquid() {
-		return this.material != Materials.NON_SOLID;
+		return this.material != Materials.NON_SOLID && this.material != Materials.NON_SOLID_TRANSPARENT;
+	}
+
+	public boolean isTransparent() {
+		return type == Blocks.AIR || this.material == Materials.NON_SOLID_TRANSPARENT || this.material == Materials.TRANSPARENT;
 	}
 
 	public boolean isLiquid() {

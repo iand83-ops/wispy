@@ -5,16 +5,17 @@ import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.entities.Player;
 import fr.nicolas.wispy.game.items.ItemStack;
 import fr.nicolas.wispy.game.render.Camera;
+import fr.nicolas.wispy.game.render.Vector2D;
 import fr.nicolas.wispy.game.world.WorldManager;
 import fr.nicolas.wispy.ui.IngameUI;
 import fr.nicolas.wispy.ui.Window;
+import fr.nicolas.wispy.ui.menu.InventoryMenu;
 import fr.nicolas.wispy.ui.menu.Menu;
 import fr.nicolas.wispy.ui.menu.PauseMenu;
 import fr.nicolas.wispy.ui.renderer_screens.GameRenderer;
 import fr.nicolas.wispy.ui.renderer_screens.MainMenuRenderer;
 import fr.nicolas.wispy.ui.renderer_screens.RendererScreen;
 
-import java.awt.*;
 import java.awt.event.*;
 
 
@@ -34,7 +35,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
     private final Runner runner;
 
     private Menu menu = null;
-    private Point mouseLocation = new Point(0, 0);
+    private Vector2D mouseLocation = new Vector2D(0, 0);
 
     private boolean rightKeyPressed = false;
     private boolean leftKeyPressed = false;
@@ -47,10 +48,15 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
     private boolean rightClickPressed = false;
 
     private Block selectedBlock = null;
+    private int selectedBlockX = 0;
+    private int selectedBlockY = 0;
     private long blockBreakStartTime = -1;
 
     private long lastGameTick = 0;
     private long gameTick = 0;
+
+    private long lastLeftClickTick = 0;
+    private long lastRightClickTick = 0;
 
     public Game(Window window) {
         instance = this;
@@ -79,6 +85,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
     }
 
     public void closeMenu() {
+        this.menu.close();
         this.menu = null;
     }
 
@@ -98,24 +105,28 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
             gameTick++;
         }
 
-        if (rightKeyPressed) {
-            player.setWalking(true);
-            player.setFacingRight(true);
-        }
+        if (menu == null) {
+            if (rightKeyPressed) {
+                player.setWalking(true);
+                player.setFacingRight(true);
+            }
 
-        if (leftKeyPressed) {
-            player.setWalking(true);
-            player.setFacingRight(false);
-        }
+            if (leftKeyPressed) {
+                player.setWalking(true);
+                player.setFacingRight(false);
+            }
 
-        if (!leftKeyPressed && !rightKeyPressed) {
+            if (!leftKeyPressed && !rightKeyPressed) {
+                player.setWalking(false);
+            }
+
+            player.setSprinting(sprintKeyPressed);
+
+            if (jumpKeyPressed) {
+                player.jump();
+            }
+        } else {
             player.setWalking(false);
-        }
-
-        player.setSprinting(sprintKeyPressed);
-
-        if (jumpKeyPressed) {
-            player.jump();
         }
 
         if (blockBreakStartTime == -1 && leftClickPressed && selectedBlock != null && selectedBlock.canBreak()) {
@@ -124,22 +135,20 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
             blockBreakStartTime = -1;
         }
 
-        ItemStack stack = player.getInventory().getItem(ingameUI.getSelectedSlot());
-        if (stack != null) {
-            if (rightClickPressed && selectedBlock != null) {
-                int x = (int) Math.floor((double) mouseLocation.x / gameRenderer.getBlockSize() + camera.getX());
-                int y = (int) Math.floor((double) mouseLocation.y / gameRenderer.getBlockSize() + camera.getY());
-
-                stack.getItem().useItem(worldManager, stack, selectedBlock, x, y);
-            }
-        }
-
         player.tick(elapsedTime);
 
         camera.setX(player.getX() - window.getWidth() / 2.0F / gameRenderer.getBlockSize());
         camera.setY(player.getY() - window.getHeight() / 2.0F / gameRenderer.getBlockSize());
 
         worldManager.gameTick(elapsedTime);
+
+        ItemStack stack = player.getInventory().getItem(ingameUI.getSelectedSlot());
+        if (stack != null) {
+            if (rightClickPressed && selectedBlock != null && lastRightClickTick < gameTick) {
+                lastRightClickTick = gameTick;
+                stack.getItem().useItem(worldManager, stack, selectedBlock, selectedBlockX, selectedBlockY);
+            }
+        }
     }
 
     @Override
@@ -150,6 +159,11 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
             } else {
                 this.closeMenu();
             }
+        }
+
+        if (menu != null) {
+            menu.keyPressed(e);
+            return;
         }
 
         if (ingameUI.keyPressed(e)) {
@@ -169,10 +183,22 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
         if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_UP) {
             jumpKeyPressed = true;
         }
+
+        if (e.getKeyCode() == KeyEvent.VK_E) {
+            if (menu == null) {
+                this.openMenu(new InventoryMenu());
+            } else if (menu instanceof InventoryMenu) {
+                this.closeMenu();
+            }
+        }
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
+        if (menu != null) {
+            menu.keyReleased(e);
+        }
+
         if (e.getKeyCode() == KeyEvent.VK_D || e.getKeyCode() == KeyEvent.VK_RIGHT) {
             rightKeyPressed = false;
         } else if (e.getKeyCode() == KeyEvent.VK_Q || e.getKeyCode() == KeyEvent.VK_LEFT) {
@@ -189,19 +215,44 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
     }
 
     @Override
-    public void keyTyped(KeyEvent e) {}
+    public void keyTyped(KeyEvent e) {
+        if (menu != null) {
+            menu.keyTyped(e);
+            return;
+        }
+    }
 
     @Override
-    public void mouseClicked(MouseEvent e) {}
+    public void mouseClicked(MouseEvent e) {
+        if (menu != null) {
+            menu.mouseClicked(e);
+            return;
+        }
+    }
 
     @Override
-    public void mouseEntered(MouseEvent e) {}
+    public void mouseEntered(MouseEvent e) {
+        if (menu != null) {
+            menu.mouseEntered(e);
+            return;
+        }
+    }
 
     @Override
-    public void mouseExited(MouseEvent e) {}
+    public void mouseExited(MouseEvent e) {
+        if (menu != null) {
+            menu.mouseExited(e);
+            return;
+        }
+    }
 
     @Override
     public void mousePressed(MouseEvent e) {
+        if (menu != null) {
+            menu.mousePressed(e);
+            return;
+        }
+
         if (ingameUI.mousePressed(e)) {
             return;
         }
@@ -215,6 +266,11 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
 
     @Override
     public void mouseReleased(MouseEvent e) {
+        if (menu != null) {
+            menu.mouseReleased(e);
+            return;
+        }
+
         if (e.getButton() == MouseEvent.BUTTON1) {
             leftClickPressed = false;
         } else if (e.getButton() == MouseEvent.BUTTON3) {
@@ -224,16 +280,31 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        mouseLocation = e.getPoint();
+        mouseLocation = new Vector2D(e.getPoint().getX(), e.getPoint().getY());
+
+        if (menu != null) {
+            menu.mouseDragged(e);
+            return;
+        }
     }
 
     @Override
     public void mouseMoved(MouseEvent e) {
-        mouseLocation = e.getPoint();
+        mouseLocation = new Vector2D(e.getPoint().getX(), e.getPoint().getY());
+
+        if (menu != null) {
+            menu.mouseMoved(e);
+            return;
+        }
     }
 
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
+        if (menu != null) {
+            menu.mouseWheelMoved(e);
+            return;
+        }
+
         ingameUI.mouseWheelMoved(e);
     }
 
@@ -241,6 +312,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
         worldManager.loadWorld("TestWorld");
         gameRenderer = new GameRenderer(window.getBounds(), this);
 
+        rendererScreen.close();
         rendererScreen = gameRenderer;
 
         window.setContentPane(rendererScreen);
@@ -250,8 +322,10 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
         rendererScreen.resize(window.getBounds());
     }
 
-    public void setSelectedBlock(Block selectedBlock) {
+    public void setSelectedBlock(Block selectedBlock, int x, int y) {
         this.selectedBlock = selectedBlock;
+        this.selectedBlockX = x;
+        this.selectedBlockY = y;
         this.blockBreakStartTime = -1;
     }
 
@@ -295,7 +369,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
         return this.window;
     }
 
-    public Point getMouseLocation() {
+    public Vector2D getMouseLocation() {
         return this.mouseLocation;
     }
 

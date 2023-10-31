@@ -3,7 +3,10 @@ package fr.nicolas.wispy.game.items;
 import fr.nicolas.wispy.game.Game;
 import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.registry.Blocks;
+import fr.nicolas.wispy.game.entities.Player;
 import fr.nicolas.wispy.game.items.registry.Items;
+import fr.nicolas.wispy.game.render.AABB;
+import fr.nicolas.wispy.game.render.Vector2D;
 import fr.nicolas.wispy.game.utils.Assets;
 import fr.nicolas.wispy.game.world.WorldManager;
 
@@ -24,12 +27,17 @@ public class ItemBlock extends Item {
             return;
         }
 
-        stack.setAmount(stack.getAmount() - 1);
-        if (stack.getAmount() <= 0) {
-            Game.getInstance().getPlayer().getInventory().setItem(Game.getInstance().getIngameUI().getSelectedSlot(), null);
-        }
+        Player player = Game.getInstance().getPlayer();
+        AABB blockAABB = new AABB(new Vector2D(x, y - 1), new Vector2D(x + 1, y));
 
-        worldManager.setBlock(x, y, this.getBlockType().getBlock());
+        if (!blockAABB.intersects(player.getBoundingBox())) {
+            stack.setAmount(stack.getAmount() - 1);
+            if (stack.getAmount() <= 0) {
+                player.getInventory().setItem(Game.getInstance().getIngameUI().getSelectedSlot(), null);
+            }
+
+            worldManager.setBlock(x, y, this.getBlockType().getBlock());
+        }
     }
 
     public Blocks getBlockType() {

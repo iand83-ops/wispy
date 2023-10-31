@@ -29,18 +29,7 @@ public class IngameUI {
                 continue;
             }
 
-            graphics.drawImage(player.getInventory().getItems()[i].getItem().getTexture(), x, y, size, size, null);
-
-            graphics.setFont(new Font("Arial", Font.BOLD, 20));
-            graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-            int textX = x + size - graphics.getFontMetrics().stringWidth(String.valueOf(player.getInventory().getItems()[i].getAmount())) - 2;
-            int textY = y + size - 2;
-
-            graphics.setColor(Color.BLACK);
-            graphics.drawString(String.valueOf(player.getInventory().getItems()[i].getAmount()), textX + 1, textY + 1);
-            graphics.setColor(Color.WHITE);
-            graphics.drawString(String.valueOf(player.getInventory().getItems()[i].getAmount()), textX, textY);
+            itemStack.render(graphics, x, y, size);
         }
 
         int x = (width - 9 * (size + 5) - 5) / 2 + selectedSlot * (size + 5);
@@ -75,7 +64,7 @@ public class IngameUI {
     }
 
     public void mouseWheelMoved(MouseWheelEvent e) {
-        this.selectedSlot -= e.getWheelRotation();
+        this.selectedSlot += e.getWheelRotation();
         if (this.selectedSlot < 0) {
             this.selectedSlot = 8;
         } else if (this.selectedSlot > 8) {

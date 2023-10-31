@@ -12,7 +12,7 @@ public class EntitiesRegistry {
 
     public EntitiesRegistry(WorldManager worldManager) {
         register(0, new Player(worldManager));
-        register(1, new EntityItem(worldManager, Items.STONE.getItem()));
+        register(1, new EntityItem(worldManager, Items.STONE_BLOCK.getItem()));
     }
 
     public void register(int id, Entity entity) {

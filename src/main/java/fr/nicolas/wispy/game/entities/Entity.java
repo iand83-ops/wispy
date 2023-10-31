@@ -34,8 +34,6 @@ public abstract class Entity implements Rendering {
     protected BlockLocation persistentLiquidCollision = null;
     protected BlockLocation liquidCollision = null;
 
-    private AABB boundingBox = new AABB(new Vector2D(0, 0), new Vector2D(0, 0));
-
     protected boolean isWalking = false;
     protected boolean isSprinting = false;
     protected boolean isJumping = false;
@@ -410,7 +408,8 @@ public abstract class Entity implements Rendering {
     }
 
     public AABB getBoundingBox() {
-        return this.boundingBox;
+        double offset = 1.0 / GameRenderer.BLOCK_RESOLUTION;
+        return new AABB(new Vector2D(x + offset, y - getCollisionHeight() + offset), new Vector2D(x + getCollisionWidth() - offset, y - offset));
     }
 
     public void setWalking(boolean isWalking) {

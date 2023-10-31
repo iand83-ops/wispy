@@ -20,6 +20,7 @@ public class Window extends JFrame {
 		this.setLocationRelativeTo(null);
 		this.setResizable(true);
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		this.setIgnoreRepaint(true);
 
 		game = new Game(this);
 

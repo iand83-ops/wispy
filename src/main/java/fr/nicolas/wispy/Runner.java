@@ -29,7 +29,7 @@ public class Runner implements Runnable {
 			game.tick((startTime - tickTime) / 1_000_000.0);
 			tickTime = System.nanoTime();
 
-			game.getRendererScreen().repaint();
+			game.getWindow().repaint();
 
 			delta = System.nanoTime() - startTime;
 			waitTime = Math.max(frameTime - delta / 1_000_000, 8);

@@ -40,8 +40,9 @@ public class EntityItem extends Entity {
         }
 
         if (MathUtils.distance(this, Game.getInstance().getPlayer()) < 1) {
-            Game.getInstance().getPlayer().getInventory().addItem(item.copy());
-            this.kill();
+            if (Game.getInstance().getPlayer().getInventory().addItem(item.copy())) {
+                this.kill();
+            }
         }
     }
 

@@ -16,7 +16,10 @@ public enum Blocks {
     COAL_ORE,
     GOLD_ORE,
     DIAMOND_ORE,
-    BEDROCK;
+    BEDROCK,
+    TALL_GRASS,
+    CAVE_VINES,
+    CAVE_VINES_PLANT;
 
     private int id = 0;
     private Block block;

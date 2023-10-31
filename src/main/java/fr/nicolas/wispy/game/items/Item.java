@@ -5,6 +5,7 @@ import fr.nicolas.wispy.game.items.registry.Items;
 import fr.nicolas.wispy.game.utils.Assets;
 import fr.nicolas.wispy.game.world.WorldManager;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.Objects;
 
@@ -77,4 +78,7 @@ public class Item {
         return Objects.hash(type);
     }
 
+    public void render(Graphics2D graphics, int x, int y, int size) {
+        graphics.drawImage(getTexture(), x, y, size, size, null);
+    }
 }
