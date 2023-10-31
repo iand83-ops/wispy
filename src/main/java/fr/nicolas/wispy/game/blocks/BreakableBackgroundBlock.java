@@ -9,6 +9,10 @@ public class BreakableBackgroundBlock extends Block {
 		super(type, itemType);
 	}
 
+	public BreakableBackgroundBlock(Blocks type, Blocks blockItemType) {
+		super(type, blockItemType);
+	}
+
 	@Override
 	public Block copyClass() {
 		return new BreakableBackgroundBlock(this.getType(), this.getItemType());

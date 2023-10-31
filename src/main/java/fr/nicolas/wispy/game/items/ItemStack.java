@@ -31,10 +31,15 @@ public class ItemStack {
     }
 
     public void render(Graphics2D graphics, int x, int y, int size) {
-        item.render(graphics, x, y, size);
+        int offset = size / 4;
+        item.render(graphics, x + offset / 2, y + offset / 2, size - offset);
 
         graphics.setFont(new Font("Arial", Font.BOLD, 20));
         graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        if (amount == 1) {
+            return;
+        }
 
         int textX = x + size - graphics.getFontMetrics().stringWidth(String.valueOf(amount)) - 2;
         int textY = y + size - 2;

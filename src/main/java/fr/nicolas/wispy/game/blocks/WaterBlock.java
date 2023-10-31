@@ -2,12 +2,13 @@ package fr.nicolas.wispy.game.blocks;
 
 import fr.nicolas.wispy.game.blocks.registry.Blocks;
 import fr.nicolas.wispy.game.blocks.registry.Materials;
+import fr.nicolas.wispy.game.items.registry.Items;
 import fr.nicolas.wispy.game.world.WorldManager;
 
 public class WaterBlock extends Block {
 
 	public WaterBlock() {
-		super(Blocks.WATER, Materials.LIQUID, null);
+		super(Blocks.WATER, Materials.LIQUID, (Items) null);
 	}
 
 	@Override

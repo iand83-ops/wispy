@@ -11,6 +11,7 @@ import fr.nicolas.wispy.game.utils.Assets;
 import fr.nicolas.wispy.game.world.WorldManager;
 
 import java.awt.image.BufferedImage;
+import java.util.Objects;
 
 public class ItemBlock extends Item {
 
@@ -45,6 +46,11 @@ public class ItemBlock extends Item {
     }
 
     @Override
+    public int getId() {
+        return this.getBlockType().getId();
+    }
+
+    @Override
     public BufferedImage getTexture() {
         return Assets.get("blocks/" + this.getBlockType().name().toLowerCase());
     }
@@ -59,5 +65,19 @@ public class ItemBlock extends Item {
         ItemBlock item = (ItemBlock) super.copy();
         item.blockType = this.blockType;
         return item;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ItemBlock itemBlock = (ItemBlock) o;
+        return blockType == itemBlock.blockType;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), blockType);
     }
 }

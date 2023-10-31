@@ -4,6 +4,7 @@ import fr.nicolas.wispy.game.Game;
 import fr.nicolas.wispy.game.blocks.registry.Blocks;
 import fr.nicolas.wispy.game.blocks.registry.Materials;
 import fr.nicolas.wispy.game.entities.EntityItem;
+import fr.nicolas.wispy.game.items.Item;
 import fr.nicolas.wispy.game.items.registry.Items;
 import fr.nicolas.wispy.game.utils.Assets;
 import fr.nicolas.wispy.game.world.WorldManager;
@@ -23,6 +24,7 @@ public class Block {
 	private Blocks originalType = Blocks.AIR;
 	private final Materials material;
 	private final Items itemType;
+	private Blocks blocksItemType;
 
 	private final double width;
 	private final double height;
@@ -31,14 +33,24 @@ public class Block {
 
 	private boolean backgroundBlock = false;
 
-	private long tickPlaced;
+	private final long tickPlaced;
 
 	public Block(Blocks type, Items itemType) {
 		this(type, Materials.SOLID, itemType, 1, 1);
 	}
 
+	public Block(Blocks type, Blocks blockItemType) {
+		this(type, Materials.SOLID, Items.BLOCK, 1, 1);
+		this.blocksItemType = blockItemType;
+	}
+
 	public Block(Blocks type, Materials material, Items itemType) {
 		this(type, material, itemType, 1, 1);
+	}
+
+	public Block(Blocks type, Materials material, Blocks blockItemType) {
+		this(type, material, Items.BLOCK, 1, 1);
+		this.blocksItemType = blockItemType;
 	}
 
 	public Block(Blocks type, Materials material, Items itemType, double width, double height) {
@@ -62,9 +74,15 @@ public class Block {
 			return;
 		}
 
-		EntityItem item = new EntityItem(worldManager, this.itemType.getItem().copy());
-		item.setPos(x + 0.25 + (new Random().nextDouble() - 0.5) / 2, y + 0.75);
-		worldManager.addEntity(item);
+		Item item = this.itemType.getItem();
+
+		if (this.blocksItemType != null) {
+			item = worldManager.getItemRegistry().getItem(this.blocksItemType.getId());
+		}
+
+		EntityItem entityItem = new EntityItem(worldManager, item.copy());
+		entityItem.setPos(x + 0.25 + (new Random().nextDouble() - 0.5) / 2, y + 0.75);
+		worldManager.addEntity(entityItem);
 	}
 
 	public byte[] toBytes() throws IOException {
@@ -160,8 +178,16 @@ public class Block {
 		return this.getType() != Blocks.AIR && this.getType() != Blocks.BEDROCK && !this.isBackgroundBlock();
 	}
 
+	public boolean takeBreakPriority() {
+		return canBreak() && !isTransparent() && !isBackgroundBlock();
+	}
+
 	public boolean canReplace() {
 		return this.getType() == Blocks.AIR || this.isBackgroundBlock() || this.isLiquid();
+	}
+
+	public boolean takeReplacePriority() {
+		return canReplace() && !isBackgroundBlock();
 	}
 
 	public long getTickPlaced() {
@@ -188,6 +214,10 @@ public class Block {
 		return this.itemType;
 	}
 
+	public void setBlocksItemType(Blocks blocksItemType) {
+		this.blocksItemType = blocksItemType;
+	}
+
 	public Block copyClass() {
 		return new Block(this.type, this.material, this.itemType, this.width, this.height);
 	}
@@ -197,6 +227,7 @@ public class Block {
 		clone.setBackgroundBlock(this.backgroundBlock);
 		clone.setDecorationType(this.decorationType);
 		clone.setOriginalType(this.originalType);
+		clone.setBlocksItemType(this.blocksItemType);
 		return clone;
 	}
 

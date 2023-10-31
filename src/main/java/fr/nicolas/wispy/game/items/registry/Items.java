@@ -4,17 +4,7 @@ import fr.nicolas.wispy.game.items.Item;
 
 public enum Items {
 
-    STONE_BLOCK,
-    DIRT_BLOCK,
-    GRASS_BLOCK,
-    SAND_BLOCK,
-    OAK_LOG_BLOCK,
-    OAK_LEAVES_BLOCK,
-    IRON_ORE_BLOCK,
-    COAL_ORE_BLOCK,
-    GOLD_ORE_BLOCK,
-    DIAMOND_ORE_BLOCK,
-    BEDROCK_BLOCK,
+    BLOCK,
     IRON_INGOT,
     COAL,
     GOLD_INGOT,

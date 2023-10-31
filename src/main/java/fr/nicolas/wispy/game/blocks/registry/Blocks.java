@@ -19,7 +19,9 @@ public enum Blocks {
     BEDROCK,
     TALL_GRASS,
     CAVE_VINES,
-    CAVE_VINES_PLANT;
+    CAVE_VINES_PLANT,
+    CRAFTING_TABLE,
+    OAK_PLANKS;
 
     private int id = 0;
     private Block block;

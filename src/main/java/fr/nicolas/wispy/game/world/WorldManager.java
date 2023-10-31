@@ -5,6 +5,7 @@ import fr.nicolas.wispy.game.Game;
 import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.registry.Blocks;
 import fr.nicolas.wispy.game.blocks.registry.BlocksRegistry;
+import fr.nicolas.wispy.game.craft.CraftManager;
 import fr.nicolas.wispy.game.entities.Entity;
 import fr.nicolas.wispy.game.entities.Player;
 import fr.nicolas.wispy.game.entities.registry.EntitiesRegistry;
@@ -46,8 +47,9 @@ public class WorldManager {
 	private final Game game;
 	private final Camera camera;
 
-	private final BlocksRegistry blockRegistry;
+	private final CraftManager craftManager;
 	private final ItemsRegistry itemRegistry;
+	private final BlocksRegistry blockRegistry;
 	private final EntitiesRegistry entitiesRegistry;
 
 	private final WorldGeneration worldGeneration;
@@ -65,9 +67,13 @@ public class WorldManager {
 	public WorldManager(Game game, Camera camera) {
 		this.game = game;
 		this.camera = camera;
-		this.blockRegistry = new BlocksRegistry();
-		this.itemRegistry = new ItemsRegistry();
+
+		this.craftManager = new CraftManager();
+		this.itemRegistry = new ItemsRegistry(craftManager);
+		this.blockRegistry = new BlocksRegistry(itemRegistry);
 		this.entitiesRegistry = new EntitiesRegistry(this);
+		this.craftManager.loadRecipes();
+
 		this.chunks = new Chunk[3];
 		this.worldGeneration = new WorldGeneration(this, 0);
 
@@ -537,6 +543,9 @@ public class WorldManager {
 									g.setColor(new Color(0, 0, 0, Math.min(1.0F, darkness)));
 									g.fillRect(blockX, y, 1, 1);
 								}
+							} else {
+								g.setColor(game.getGameRenderer().getSkyColor());
+								g.fillRect(blockX, y, 1, 1);
 							}
 						}
 
@@ -565,8 +574,8 @@ public class WorldManager {
 		Block topBlock = getBlock(blockX, blockY - 1);
 		Block bottomBlock = getBlock(blockX, blockY + 1);
 
-		boolean canBreak = block.canBreak() && (!leftBlock.canBreak() || !rightBlock.canBreak() || !topBlock.canBreak() || !bottomBlock.canBreak());
-		boolean canReplace = block.canReplace() && (!leftBlock.canReplace() || !rightBlock.canReplace() || !topBlock.canReplace() || !bottomBlock.canReplace());
+		boolean canBreak = block.canBreak() && (!leftBlock.takeBreakPriority() || !rightBlock.takeBreakPriority() || !topBlock.takeBreakPriority() || !bottomBlock.takeBreakPriority());
+		boolean canReplace = block.canReplace() && (!leftBlock.takeReplacePriority() || !rightBlock.takeReplacePriority() || !topBlock.takeReplacePriority() || !bottomBlock.takeReplacePriority());
 
 		if (!canBreak && !canReplace) {
 			game.setSelectedBlock(null, 0, 0);
@@ -597,6 +606,10 @@ public class WorldManager {
 				g.drawImage(destroyStageTextures[destroyStage], blockX, blockY, 1, 1, null);
 			}
 		}
+	}
+
+	public CraftManager getCraftManager() {
+		return this.craftManager;
 	}
 
 	public BlocksRegistry getBlockRegistry() {

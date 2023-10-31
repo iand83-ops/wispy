@@ -3,7 +3,6 @@ package fr.nicolas.wispy.game.entities;
 import fr.nicolas.wispy.game.Game;
 import fr.nicolas.wispy.game.entities.registry.Entities;
 import fr.nicolas.wispy.game.items.Item;
-import fr.nicolas.wispy.game.items.registry.Items;
 import fr.nicolas.wispy.game.utils.MathUtils;
 import fr.nicolas.wispy.game.world.WorldManager;
 

@@ -16,19 +16,27 @@ public class InventoryMenu extends Menu {
 
 	private final BufferedImage inventoryTexture = Assets.get("menu/inventory");
 	private final AABB[] slots;
+	private final ItemStack[] craftSlots = new ItemStack[4];
+	private ItemStack craftResult = null;
 
 	private ItemStack itemStack;
 	private int offsetX;
 	private int offsetY;
 
 	public InventoryMenu() {
-		slots = new AABB[Game.getInstance().getPlayer().getInventory().getSize()];
+		slots = new AABB[Game.getInstance().getPlayer().getInventory().getSize() + craftSlots.length + 1];
 	}
 
 	@Override
 	public void close() {
 		if (itemStack != null) {
 			Game.getInstance().getPlayer().getInventory().addItemStack(itemStack);
+		}
+
+		for (ItemStack stack : craftSlots) {
+			if (stack != null) {
+				Game.getInstance().getPlayer().getInventory().addItemStack(stack);
+			}
 		}
 	}
 
@@ -46,19 +54,24 @@ public class InventoryMenu extends Menu {
 
 		drawPlayer(graphics, factor, x, y);
 
-		drawLine(graphics, (int) Math.round(x + 8 * factor), (int) Math.round(y + 142 * factor), factor, 0);
-		drawLine(graphics, (int) Math.round(x + 8 * factor), (int) Math.round(y + 120 * factor), factor, 9);
-		drawLine(graphics, (int) Math.round(x + 8 * factor), (int) Math.round(y + 102 * factor), factor, 18);
-		drawLine(graphics, (int) Math.round(x + 8 * factor), (int) Math.round(y + 84 * factor), factor, 27);
+		drawSlots(graphics, (int) Math.round(x + 8 * factor), (int) Math.round(y + 142 * factor), factor, 0, 9);
+		drawSlots(graphics, (int) Math.round(x + 8 * factor), (int) Math.round(y + 120 * factor), factor, 9, 9);
+		drawSlots(graphics, (int) Math.round(x + 8 * factor), (int) Math.round(y + 102 * factor), factor, 18, 9);
+		drawSlots(graphics, (int) Math.round(x + 8 * factor), (int) Math.round(y + 84 * factor), factor, 27, 9);
+
+		drawSlots(graphics, (int) Math.round(x + 98 * factor), (int) Math.round(y + 18 * factor), factor, 36, 2);
+		drawSlots(graphics, (int) Math.round(x + 98 * factor), (int) Math.round(y + 36 * factor), factor, 38, 2);
+
+		drawSlots(graphics, (int) Math.round(x + 154 * factor), (int) Math.round(y + 28 * factor), factor, 40, 1);
 
 		if (this.itemStack != null) {
 			this.itemStack.render(graphics, (int) (Game.getInstance().getMouseLocation().x - offsetX), (int) (Game.getInstance().getMouseLocation().y - offsetY), (int) (16 * factor));
 		}
 	}
 
-	private void drawLine(Graphics2D graphics, int x, int y, double factor, int index) {
-		for (int i = 0; i < 9; i++) {
-			ItemStack itemStack = Game.getInstance().getPlayer().getInventory().getItems()[i + index];
+	private void drawSlots(Graphics2D graphics, int x, int y, double factor, int index, int length) {
+		for (int i = 0; i < length; i++) {
+			ItemStack itemStack = getItemStack(i + index);
 
 			int itemX = (int) Math.round(x + i * 18 * factor);
 			int size = (int) Math.round(16 * factor);
@@ -105,12 +118,17 @@ public class InventoryMenu extends Menu {
 		for (int i = 0; i < slots.length; i++) {
 			AABB slot = slots[i];
 			if (slot != null && slot.contains(point)) {
-				ItemStack itemStack = Game.getInstance().getPlayer().getInventory().getItems()[i];
+				if (i == Game.getInstance().getPlayer().getInventory().getSize() + craftSlots.length && this.itemStack != null) {
+					break;
+				}
+
+				ItemStack itemStack = getItemStack(i);
+
 				if (itemStack != null) {
 					if (e.getButton() == MouseEvent.BUTTON1) {
 						if (this.itemStack == null) {
 							this.itemStack = itemStack;
-							Game.getInstance().getPlayer().getInventory().setItem(i, null);
+							setItemStack(i, null);
 						} else {
 							// place item
 							if (this.itemStack.getItem().getId() == itemStack.getItem().getId()) {
@@ -125,7 +143,7 @@ public class InventoryMenu extends Menu {
 							} else {
 								ItemStack temp = this.itemStack;
 								this.itemStack = itemStack;
-								Game.getInstance().getPlayer().getInventory().setItem(i, temp);
+								setItemStack(i, temp);
 							}
 						}
 						offsetX = (int) (point.x - slot.getMin().x);
@@ -135,7 +153,7 @@ public class InventoryMenu extends Menu {
 							this.itemStack = new ItemStack(itemStack.getItem(), 1);
 							itemStack.setAmount(itemStack.getAmount() - 1);
 							if (itemStack.getAmount() <= 0) {
-								Game.getInstance().getPlayer().getInventory().setItem(i, null);
+								setItemStack(i, null);
 							}
 							offsetX = (int) (point.x - slot.getMin().x);
 							offsetY = (int) (point.y - slot.getMin().y);
@@ -143,26 +161,82 @@ public class InventoryMenu extends Menu {
 							this.itemStack.setAmount(this.itemStack.getAmount() + 1);
 							itemStack.setAmount(itemStack.getAmount() - 1);
 							if (itemStack.getAmount() <= 0) {
-								Game.getInstance().getPlayer().getInventory().setItem(i, null);
+								setItemStack(i, null);
 							}
 						}
 					}
 				} else if (this.itemStack != null) {
-
 					if (e.getButton() == MouseEvent.BUTTON1) {
-						Game.getInstance().getPlayer().getInventory().setItem(i, this.itemStack);
+						setItemStack(i, this.itemStack);
 						this.itemStack = null;
 					} else if (e.getButton() == MouseEvent.BUTTON3) {
-						Game.getInstance().getPlayer().getInventory().setItem(i, new ItemStack(this.itemStack.getItem(), 1));
+						setItemStack(i, new ItemStack(this.itemStack.getItem(), 1));
 						this.itemStack.setAmount(this.itemStack.getAmount() - 1);
 						if (this.itemStack.getAmount() <= 0) {
 							this.itemStack = null;
 						}
 					}
 				}
-				return;
+				break;
 			}
 		}
+
+		this.craftResult = Game.getInstance().getWorldManager().getCraftManager().getResult(this.craftSlots);
+	}
+
+	public ItemStack getItemStack(int index) {
+		if (index < Game.getInstance().getPlayer().getInventory().getSize()) {
+			return Game.getInstance().getPlayer().getInventory().getItems()[index];
+		}
+
+		index -= Game.getInstance().getPlayer().getInventory().getSize();
+
+		if (index < this.craftSlots.length) {
+			return this.craftSlots[index];
+		}
+
+		index -= this.craftSlots.length;
+
+		if (index == 0) {
+			return this.craftResult;
+		}
+
+		index -= 1;
+
+		return null;
+	}
+
+	public void setItemStack(int index, ItemStack itemStack) {
+		if (index < Game.getInstance().getPlayer().getInventory().getSize()) {
+			Game.getInstance().getPlayer().getInventory().getItems()[index] = itemStack;
+			return;
+		}
+
+		index -= Game.getInstance().getPlayer().getInventory().getSize();
+
+		if (index < this.craftSlots.length) {
+			this.craftSlots[index] = itemStack;
+			return;
+		}
+
+		index -= this.craftSlots.length;
+
+		if (index == 0) {
+			this.craftResult = itemStack;
+
+			for (int i = 0; i < this.craftSlots.length; i++) {
+				if (this.craftSlots[i] != null) {
+					this.craftSlots[i].setAmount(this.craftSlots[i].getAmount() - 1);
+					if (this.craftSlots[i].getAmount() <= 0) {
+						this.craftSlots[i] = null;
+					}
+				}
+			}
+
+			return;
+		}
+
+		index -= 1;
 	}
 
 	@Override

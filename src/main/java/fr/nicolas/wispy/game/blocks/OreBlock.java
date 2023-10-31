@@ -9,6 +9,10 @@ public class OreBlock extends Block {
 		super(type, itemType);
 	}
 
+	public OreBlock(Blocks type, Blocks blockItemType) {
+		super(type, blockItemType);
+	}
+
 	@Override
 	public boolean canBreak() {
 		return true;
