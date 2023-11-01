@@ -85,6 +85,10 @@ public class Block {
 		worldManager.addEntity(entityItem);
 	}
 
+	public void onRightClick(WorldManager worldManager, int x, int y) {
+
+	}
+
 	public byte[] toBytes() throws IOException {
 		try (ByteArrayOutputStream stream = new ByteArrayOutputStream(); DataOutputStream out = new DataOutputStream(stream)) {
 			out.writeInt(this.type.getId());

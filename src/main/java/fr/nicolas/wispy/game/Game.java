@@ -9,9 +9,10 @@ import fr.nicolas.wispy.game.render.Vector2D;
 import fr.nicolas.wispy.game.world.WorldManager;
 import fr.nicolas.wispy.ui.IngameUI;
 import fr.nicolas.wispy.ui.Window;
-import fr.nicolas.wispy.ui.menu.InventoryMenu;
 import fr.nicolas.wispy.ui.menu.Menu;
 import fr.nicolas.wispy.ui.menu.PauseMenu;
+import fr.nicolas.wispy.ui.menu.inventory.InventoryMenu;
+import fr.nicolas.wispy.ui.menu.inventory.PlayerInventoryMenu;
 import fr.nicolas.wispy.ui.renderer_screens.GameRenderer;
 import fr.nicolas.wispy.ui.renderer_screens.MainMenuRenderer;
 import fr.nicolas.wispy.ui.renderer_screens.RendererScreen;
@@ -44,8 +45,8 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
 
     private boolean running = true;
 
-    private boolean leftClickPressed = false;
-    private boolean rightClickPressed = false;
+    private int leftClickCount = -1;
+    private int rightClickCount = -1;
 
     private Block selectedBlock = null;
     private int selectedBlockX = 0;
@@ -76,6 +77,9 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
         // Shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             this.running = false;
+
+            closeMenu();
+
             worldManager.closeWorld();
         }));
     }
@@ -85,6 +89,10 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
     }
 
     public void closeMenu() {
+        if (this.menu == null) {
+            return;
+        }
+
         this.menu.close();
         this.menu = null;
     }
@@ -129,9 +137,9 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
             player.setWalking(false);
         }
 
-        if (blockBreakStartTime == -1 && leftClickPressed && selectedBlock != null && selectedBlock.canBreak()) {
+        if (blockBreakStartTime == -1 && leftClickCount >= 0 && selectedBlock != null && selectedBlock.canBreak()) {
             blockBreakStartTime = System.currentTimeMillis();
-        } else if (blockBreakStartTime != -1 && !leftClickPressed) {
+        } else if (blockBreakStartTime != -1 && leftClickCount < 0) {
             blockBreakStartTime = -1;
         }
 
@@ -142,10 +150,16 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
 
         worldManager.gameTick(elapsedTime);
 
-        ItemStack stack = player.getInventory().getItem(ingameUI.getSelectedSlot());
-        if (stack != null) {
-            if (rightClickPressed && selectedBlock != null && lastRightClickTick < gameTick) {
-                lastRightClickTick = gameTick;
+        if (rightClickCount >= 0 && selectedBlock != null && lastRightClickTick < gameTick) {
+            lastRightClickTick = gameTick;
+
+            if (rightClickCount == 0) {
+                selectedBlock.onRightClick(worldManager, selectedBlockX, selectedBlockY);
+                rightClickCount++;
+            }
+
+            ItemStack stack = player.getInventory().getItem(ingameUI.getSelectedSlot());
+            if (stack != null) {
                 stack.getItem().useItem(worldManager, stack, selectedBlock, selectedBlockX, selectedBlockY);
             }
         }
@@ -186,7 +200,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
 
         if (e.getKeyCode() == KeyEvent.VK_E) {
             if (menu == null) {
-                this.openMenu(new InventoryMenu());
+                this.openMenu(new PlayerInventoryMenu());
             } else if (menu instanceof InventoryMenu) {
                 this.closeMenu();
             }
@@ -258,9 +272,9 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
         }
 
         if (e.getButton() == MouseEvent.BUTTON1) {
-            leftClickPressed = true;
+            leftClickCount = 0;
         } else if (e.getButton() == MouseEvent.BUTTON3) {
-            rightClickPressed = true;
+            rightClickCount = 0;
         }
     }
 
@@ -268,13 +282,12 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
     public void mouseReleased(MouseEvent e) {
         if (menu != null) {
             menu.mouseReleased(e);
-            return;
         }
 
         if (e.getButton() == MouseEvent.BUTTON1) {
-            leftClickPressed = false;
+            leftClickCount = -1;
         } else if (e.getButton() == MouseEvent.BUTTON3) {
-            rightClickPressed = false;
+            rightClickCount = -1;
         }
     }
 
@@ -309,7 +322,7 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
     }
 
     public void start() {
-        worldManager.loadWorld("TestWorld");
+        worldManager.loadWorld("World");
         gameRenderer = new GameRenderer(window.getBounds(), this);
 
         rendererScreen.close();

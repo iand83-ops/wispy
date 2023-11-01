@@ -59,6 +59,7 @@ public class WorldManager {
 	private JSONObject worldData = new JSONObject();
 
 	private boolean loaded = false;
+	private boolean playerSpawned = false;
 
 	private long worldTimeReference = 0;
 
@@ -75,7 +76,7 @@ public class WorldManager {
 		this.craftManager.loadRecipes();
 
 		this.chunks = new Chunk[3];
-		this.worldGeneration = new WorldGeneration(this, 0);
+		this.worldGeneration = new WorldGeneration(this);
 
 		for (int i = 0; i < 10; i++) {
 			this.destroyStageTextures[i] = Assets.get("destroy/destroy_stage_" + i);
@@ -105,10 +106,6 @@ public class WorldManager {
 			this.worldDir.mkdirs();
 		}
 
-		for (int i = 0; i < this.chunks.length; i++) {
-			this.chunks[i] = loadChunk(this.leftChunkIndex + i);
-		}
-
 		this.worldTimeReference = System.currentTimeMillis();
 
 		File worldDataFile = new File(worldDir, "world.json");
@@ -118,6 +115,10 @@ public class WorldManager {
 
 				if (this.worldData.has("time")) {
 					worldTimeReference = this.worldData.getLong("time");
+				}
+
+				if (this.worldData.has("seed")) {
+					worldGeneration.setSeed(this.worldData.getLong("seed"));
 				}
 
 				loadWorldData();
@@ -136,6 +137,15 @@ public class WorldManager {
 			loadWorldData();
 		}
 
+		for (int i = 0; i < this.chunks.length; i++) {
+			this.chunks[i] = loadChunk(this.leftChunkIndex + i);
+		}
+
+		if (!this.playerSpawned) {
+			teleportPlayerToSpawnPoint();
+			this.playerSpawned = true;
+		}
+
 		this.loaded = true;
 	}
 
@@ -148,7 +158,7 @@ public class WorldManager {
 			saveChunk(this.chunks[i], this.leftChunkIndex + i);
 		}
 
-		savePlayerData();
+		saveWorldData();
 
 		File worldDataFile = new File(worldDir, "world.json");
 		try {
@@ -160,7 +170,7 @@ public class WorldManager {
 		this.loaded = false;
 	}
 
-	public void savePlayerData() {
+	public void saveWorldData() {
 		JSONObject playerData = new JSONObject();
 
 		playerData.put("x", this.game.getPlayer().getX());
@@ -182,6 +192,7 @@ public class WorldManager {
 
 		this.worldData.put("player", playerData);
 		this.worldData.put("time", this.worldTimeReference);
+		this.worldData.put("seed", this.worldGeneration.getSeed());
 	}
 
 	public void loadWorldData() {
@@ -189,8 +200,7 @@ public class WorldManager {
 			JSONObject playerData = this.worldData.getJSONObject("player");
 			if (playerData != null && playerData.has("x") && playerData.has("y")) {
 				this.game.getPlayer().setPos(playerData.getDouble("x"), playerData.getDouble("y"));
-			} else {
-				teleportPlayerToSpawnPoint();
+				this.playerSpawned = true;
 			}
 
 			if (playerData != null && playerData.has("inventory")) {
@@ -205,8 +215,6 @@ public class WorldManager {
 					}
 				}
 			}
-		} else {
-			teleportPlayerToSpawnPoint();
 		}
 	}
 

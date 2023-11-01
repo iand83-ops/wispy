@@ -1,8 +1,8 @@
 package fr.nicolas.wispy.game.world.worldgen;
 
 import fr.nicolas.wispy.game.blocks.Block;
-import fr.nicolas.wispy.game.blocks.OreBlock;
 import fr.nicolas.wispy.game.blocks.registry.Blocks;
+import fr.nicolas.wispy.game.blocks.types.OreBlock;
 import fr.nicolas.wispy.game.world.WorldManager;
 import fr.nicolas.wispy.game.world.chunks.Chunk;
 import fr.nicolas.wispy.game.world.decorations.*;
@@ -16,7 +16,7 @@ import java.util.Random;
 public class WorldGeneration {
 
     private final WorldManager worldManager;
-    private final long seed;
+    private long seed = new Random().nextLong();
 
     private final Decoration[] decorations = {
             new TreeDecoration(),
@@ -25,9 +25,8 @@ public class WorldGeneration {
             new CaveVinesDecoration()
     };
 
-    public WorldGeneration(WorldManager worldManager, long seed) {
+    public WorldGeneration(WorldManager worldManager) {
         this.worldManager = worldManager;
-        this.seed = seed;
     }
 
     public Chunk generateChunk(int index) {
@@ -190,4 +189,11 @@ public class WorldGeneration {
         return chunk;
     }
 
+    public void setSeed(long seed) {
+        this.seed = seed;
+    }
+
+    public long getSeed() {
+        return this.seed;
+    }
 }

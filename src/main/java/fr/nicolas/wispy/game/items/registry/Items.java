@@ -8,7 +8,13 @@ public enum Items {
     IRON_INGOT,
     COAL,
     GOLD_INGOT,
-    DIAMOND;
+    DIAMOND,
+    STICK,
+    WOODEN_PICKAXE,
+    WOODEN_AXE,
+    WOODEN_SHOVEL,
+    WOODEN_HOE,
+    WOODEN_SWORD;
 
     private int id = 0;
     private Item item;

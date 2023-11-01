@@ -1,5 +1,6 @@
-package fr.nicolas.wispy.game.blocks;
+package fr.nicolas.wispy.game.blocks.types;
 
+import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.registry.Blocks;
 import fr.nicolas.wispy.game.blocks.registry.Materials;
 import fr.nicolas.wispy.game.items.registry.Items;

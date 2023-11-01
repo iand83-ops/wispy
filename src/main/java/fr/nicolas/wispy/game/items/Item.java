@@ -31,6 +31,10 @@ public class Item {
 
     }
 
+    public boolean canStack() {
+        return true;
+    }
+
     public int getId() {
         return this.type.getId();
     }

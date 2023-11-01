@@ -1,7 +1,7 @@
 package fr.nicolas.wispy.game.world.chunks;
 
 import fr.nicolas.wispy.game.blocks.Block;
-import fr.nicolas.wispy.game.blocks.ReplaceableBlock;
+import fr.nicolas.wispy.game.blocks.types.ReplaceableBlock;
 import fr.nicolas.wispy.game.blocks.registry.Blocks;
 import fr.nicolas.wispy.game.world.WorldManager;
 

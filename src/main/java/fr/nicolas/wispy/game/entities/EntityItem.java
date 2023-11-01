@@ -38,7 +38,7 @@ public class EntityItem extends Entity {
             this.kill();
         }
 
-        if (MathUtils.distance(this, Game.getInstance().getPlayer()) < 1) {
+        if (Game.getInstance().getGameTick() - spawnTick > 5 && MathUtils.distance(this, Game.getInstance().getPlayer()) < 1) {
             if (Game.getInstance().getPlayer().getInventory().addItem(item.copy())) {
                 this.kill();
             }

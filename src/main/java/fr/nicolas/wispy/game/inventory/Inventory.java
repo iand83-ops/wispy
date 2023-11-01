@@ -28,6 +28,10 @@ public class Inventory {
 
     public boolean addItemStack(ItemStack stack) {
         for (int i = 0; i < this.items.length; i++) {
+            if (stack == this.items[i]) {
+                return false;
+            }
+
             if (this.items[i] == null) {
                 this.items[i] = stack;
                 return true;

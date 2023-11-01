@@ -1,6 +1,7 @@
 package fr.nicolas.wispy.game.blocks.registry;
 
-import fr.nicolas.wispy.game.blocks.*;
+import fr.nicolas.wispy.game.blocks.Block;
+import fr.nicolas.wispy.game.blocks.types.*;
 import fr.nicolas.wispy.game.craft.CraftManager;
 import fr.nicolas.wispy.game.craft.Definition;
 import fr.nicolas.wispy.game.craft.Recipe;
@@ -39,7 +40,7 @@ public class BlocksRegistry {
         register(14, new ReplaceableBlock(Blocks.CAVE_VINES, null), "Cave vines");
         register(15, new ReplaceableBlock(Blocks.CAVE_VINES_PLANT, null), "Cave vines plant");
 
-        register(16, new Block(Blocks.CRAFTING_TABLE, Blocks.CRAFTING_TABLE), "Crafting table")
+        register(16, new CraftingTableBlock(), "Crafting table")
                 .registerRecipe(new Recipe("AA", "AA"), new Definition('A', Blocks.OAK_PLANKS));
 
         register(17, new Block(Blocks.OAK_PLANKS, Blocks.OAK_PLANKS), "Oak planks")
