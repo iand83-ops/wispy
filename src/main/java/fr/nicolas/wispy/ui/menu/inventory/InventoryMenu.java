@@ -196,7 +196,7 @@ public abstract class InventoryMenu extends Menu {
 							this.itemStack.setAmount(this.itemStack.getAmount() - 1);
 						}
 					}
-				} else if (this.itemStack != null) {
+				} else if (this.itemStack != null && !isImmutable) {
 					if (e.getButton() == MouseEvent.BUTTON1) { // Left Click Place Items
 						draggingSlots.add(i);
 						draggingInitialAmount.add(0);
