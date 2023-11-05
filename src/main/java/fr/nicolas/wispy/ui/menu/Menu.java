@@ -5,8 +5,12 @@ import java.awt.event.*;
 
 public abstract class Menu implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
 
-    public void render(Graphics2D graphics, int width, int height) {
+    protected int width;
+    protected int height;
 
+    public void render(Graphics2D graphics, int width, int height) {
+        this.width = width;
+        this.height = height;
     }
 
     public void close() {

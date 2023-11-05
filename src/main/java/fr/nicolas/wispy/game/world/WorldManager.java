@@ -504,12 +504,12 @@ public class WorldManager {
 				double distance = Math.sqrt(dx * dx + dy * dy);
 				double circleRadius = 10.0;
 
+				darknessOpacity += 0.6F * timeFactor;
+
 				if (distance < circleRadius) {
 					float distanceFactor = 1 - (float) ((circleRadius - distance) / circleRadius);
 					darknessOpacity = Math.min(darknessOpacity, distanceFactor * distanceFactor);
 				}
-
-				darknessOpacity += 0.6F * timeFactor;
 
 				if (block.isBackgroundBlock() && !block.isTransparent()) {
 					darknessOpacity += 0.3F;

@@ -15,7 +15,7 @@ import java.nio.ByteBuffer;
 public class EntityItem extends Entity {
 
     private Item item;
-    private final long spawnTick;
+    private long spawnTick;
 
     public EntityItem(WorldManager worldManager, Item item) {
         super(Entities.ITEM, worldManager, 0.5, 0.5);
@@ -38,7 +38,7 @@ public class EntityItem extends Entity {
             this.kill();
         }
 
-        if (Game.getInstance().getGameTick() - spawnTick > 5 && MathUtils.distance(this, Game.getInstance().getPlayer()) < 1) {
+        if (Game.getInstance().getGameTick() - spawnTick > 6 && MathUtils.distance(this, Game.getInstance().getPlayer()) < 1) {
             if (Game.getInstance().getPlayer().getInventory().addItem(item.copy())) {
                 this.kill();
             }
@@ -55,6 +55,10 @@ public class EntityItem extends Entity {
         graphics.translate(0, -translateY);
         super.drawImage(graphics, image, x, y, width, height);
         graphics.translate(0, translateY);
+    }
+
+    public void setSpawnTick(long spawnTick) {
+        this.spawnTick = spawnTick;
     }
 
     @Override

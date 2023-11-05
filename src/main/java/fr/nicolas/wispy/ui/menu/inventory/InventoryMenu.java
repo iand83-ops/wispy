@@ -1,11 +1,11 @@
 package fr.nicolas.wispy.ui.menu.inventory;
 
 import fr.nicolas.wispy.game.Game;
+import fr.nicolas.wispy.game.entities.EntityItem;
 import fr.nicolas.wispy.game.entities.Player;
 import fr.nicolas.wispy.game.items.ItemStack;
 import fr.nicolas.wispy.game.render.AABB;
 import fr.nicolas.wispy.game.render.Vector2D;
-import fr.nicolas.wispy.game.utils.Assets;
 import fr.nicolas.wispy.ui.menu.Menu;
 import fr.nicolas.wispy.ui.renderer_screens.GameRenderer;
 
@@ -13,6 +13,7 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Random;
 
 public abstract class InventoryMenu extends Menu {
 
@@ -52,6 +53,8 @@ public abstract class InventoryMenu extends Menu {
 
 	@Override
 	public void render(Graphics2D graphics, int width, int height) {
+		super.render(graphics, width, height);
+
 		int inventoryWidth = (int) ((176 / 166.0) * height / 2.0);
 		int inventoryHeight = height / 2;
 
@@ -124,6 +127,31 @@ public abstract class InventoryMenu extends Menu {
 		Vector2D point = Game.getInstance().getMouseLocation();
 		if (point == null) {
 			return;
+		}
+
+		if (this.itemStack != null && (e.getButton() == MouseEvent.BUTTON1 || e.getButton() == MouseEvent.BUTTON3)) {
+			int inventoryWidth = (int) ((176 / 166.0) * height / 2.0);
+			int inventoryHeight = height / 2;
+
+			int x = width / 2 - inventoryWidth / 2;
+			int y = height / 2 - inventoryHeight / 2;
+
+			if (point.x < x || point.x > x + inventoryWidth || point.y < y || point.y > y + inventoryHeight) {
+				for (int i = 0; i < (e.getButton() == MouseEvent.BUTTON1 ? this.itemStack.getAmount() : 1); i++) {
+					EntityItem entityItem = new EntityItem(Game.getInstance().getWorldManager(), this.itemStack.getItem().copy());
+					entityItem.setPos(Game.getInstance().getPlayer().getX() + 0.25 + (new Random().nextDouble() - 0.5) / 2, Game.getInstance().getPlayer().getY() - 0.75);
+					entityItem.setSpawnTick(Game.getInstance().getGameTick() + 40);
+					Game.getInstance().getWorldManager().addEntity(entityItem);
+				}
+				if (e.getButton() == MouseEvent.BUTTON1) {
+					this.itemStack = null;
+				} else {
+					this.itemStack.setAmount(this.itemStack.getAmount() - 1);
+					if (this.itemStack.getAmount() <= 0) {
+						this.itemStack = null;
+					}
+				}
+			}
 		}
 
 		for (int i = 0; i < slots.length; i++) {

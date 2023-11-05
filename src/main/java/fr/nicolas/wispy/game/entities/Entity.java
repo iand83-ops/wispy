@@ -210,8 +210,8 @@ public abstract class Entity implements Rendering {
     }
 
     public void computeCollisions() {
-        double playerWidth = getCollisionWidth();
-        double playerHeight = getCollisionHeight();
+        double width = getCollisionWidth();
+        double height = getCollisionHeight();
 
         setGroundCollision(null);
         setLeftCollision(null);
@@ -222,7 +222,7 @@ public abstract class Entity implements Rendering {
         setLiquidCollision(null);
 
         for (int i = 0; i < this.worldManager.getChunks().length; i++) {
-            computeCollision(this.worldManager.getChunks()[i], this.worldManager.getLeftChunkIndex() + i, playerWidth, playerHeight);
+            computeCollision(this.worldManager.getChunks()[i], this.worldManager.getLeftChunkIndex() + i, width, height);
         }
 
         if (this.liquidCollision != null) {
@@ -253,7 +253,7 @@ public abstract class Entity implements Rendering {
         }
     }
 
-    private void computeCollision(Chunk chunk, int chunkIndex, double playerWidth, double playerHeight) {
+    private void computeCollision(Chunk chunk, int chunkIndex, double width, double height) {
         if (chunk == null || chunk.getBlocks() == null) {
             return;
         }
@@ -264,14 +264,14 @@ public abstract class Entity implements Rendering {
         double playerX = getX();
         double playerY = getY();
 
-        if (playerX + playerWidth < chunkX || playerX > chunkX + chunkWidth) {
+        if (playerX + width < chunkX || playerX > chunkX + chunkWidth) {
             return;
         }
 
         int chunkY = 0;
         int chunkHeight = chunk.getHeight();
 
-        if (playerY + playerHeight < 0 || playerY > chunkHeight) {
+        if (playerY + height < 0 || playerY > chunkHeight) {
             setGroundCollision(null);
             return;
         }
@@ -281,16 +281,16 @@ public abstract class Entity implements Rendering {
 
         double offset = 1.0 / GameRenderer.BLOCK_RESOLUTION;
 
-        AABB playerLeftAABB = new AABB(new Vector2D(playerChunkX, playerChunkY - playerHeight + offset), new Vector2D(playerChunkX, playerChunkY - offset));
-        AABB playerRightAABB = new AABB(new Vector2D(playerChunkX + playerWidth, playerChunkY - playerHeight + offset), new Vector2D(playerChunkX + playerWidth, playerChunkY - offset));
-        AABB playerUpAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY - playerHeight), new Vector2D(playerChunkX + playerWidth - offset, playerChunkY - playerHeight));
-        AABB playerDownAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY), new Vector2D(playerChunkX + playerWidth - offset, playerChunkY));
-        Vector2D playerCenterPoint = new Vector2D(playerChunkX + playerWidth / 2.0, playerChunkY - playerHeight / 2.0);
+        AABB playerLeftAABB = new AABB(new Vector2D(playerChunkX, playerChunkY - height + offset), new Vector2D(playerChunkX, playerChunkY - offset));
+        AABB playerRightAABB = new AABB(new Vector2D(playerChunkX + width, playerChunkY - height + offset), new Vector2D(playerChunkX + width, playerChunkY - offset));
+        AABB playerUpAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY - height), new Vector2D(playerChunkX + width - offset, playerChunkY - height));
+        AABB playerDownAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY), new Vector2D(playerChunkX + width - offset, playerChunkY));
+        Vector2D playerCenterPoint = new Vector2D(playerChunkX + width / 2.0, playerChunkY - height / 2.0);
 
-        for (int x = (int) -playerWidth; x <= playerWidth; x++) {
-            for (int y = (int) -playerHeight; y <= playerHeight; y++) {
-                int blockX = (int) (playerChunkX + x);
-                int blockY = (int) (playerChunkY + y);
+        for (int x = (int) -Math.floor(width); x <= Math.ceil(width); x++) {
+            for (int y = (int) -Math.floor(height); y <= Math.ceil(height); y++) {
+                int blockX = (int) Math.floor(playerChunkX + x);
+                int blockY = (int) Math.floor(playerChunkY + y);
 
                 if (blockX < 0 || blockX >= chunkWidth || blockY < 0 || blockY >= chunkHeight) {
                     continue;
