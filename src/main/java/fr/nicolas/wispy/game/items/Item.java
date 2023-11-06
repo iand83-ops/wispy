@@ -13,8 +13,8 @@ public class Item {
 
     private final Items type;
     private final String name;
-    private final int maxDurability;
-    private int durability;
+    protected final int maxDurability;
+    protected int durability;
 
     public Item(Items type, String name) {
         this(type, name, 0);
@@ -28,6 +28,10 @@ public class Item {
     }
 
     public void useItem(WorldManager worldManager, ItemStack stack, Block block, int x, int y) {
+
+    }
+
+    public void onBreak(WorldManager worldManager, ItemStack stack, Block block, int x, int y) {
 
     }
 
@@ -49,6 +53,10 @@ public class Item {
 
     public int getMaxDurability() {
         return this.maxDurability;
+    }
+
+    public void setDurability(int durability) {
+        this.durability = durability;
     }
 
     public int getDurability() {

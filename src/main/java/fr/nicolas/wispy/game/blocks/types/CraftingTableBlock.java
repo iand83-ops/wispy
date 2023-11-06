@@ -3,13 +3,16 @@ package fr.nicolas.wispy.game.blocks.types;
 import fr.nicolas.wispy.game.Game;
 import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.registry.Blocks;
+import fr.nicolas.wispy.game.items.registry.Tools;
 import fr.nicolas.wispy.game.world.WorldManager;
 import fr.nicolas.wispy.ui.menu.inventory.CraftingInventoryMenu;
 
 public class CraftingTableBlock extends Block {
 
 	public CraftingTableBlock() {
-		super(Blocks.CRAFTING_TABLE, Blocks.CRAFTING_TABLE);
+		type(Blocks.CRAFTING_TABLE);
+		blocksItemType(Blocks.CRAFTING_TABLE);
+		tools(Tools.AXE);
 	}
 
 	@Override

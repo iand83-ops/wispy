@@ -342,8 +342,16 @@ public class Game implements KeyListener, MouseListener, MouseMotionListener, Mo
         this.blockBreakStartTime = -1;
     }
 
+    public ItemStack getSelectedItem() {
+        return this.player.getInventory().getItem(this.ingameUI.getSelectedSlot());
+    }
+
     public Block getSelectedBlock() {
         return this.selectedBlock;
+    }
+
+    public void setBlockBreakStartTime(long blockBreakStartTime) {
+        this.blockBreakStartTime = blockBreakStartTime;
     }
 
     public long getBlockBreakStartTime() {

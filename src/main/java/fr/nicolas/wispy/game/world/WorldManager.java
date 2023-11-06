@@ -11,6 +11,7 @@ import fr.nicolas.wispy.game.entities.Player;
 import fr.nicolas.wispy.game.entities.registry.EntitiesRegistry;
 import fr.nicolas.wispy.game.items.ItemStack;
 import fr.nicolas.wispy.game.items.registry.ItemsRegistry;
+import fr.nicolas.wispy.game.items.types.ToolItem;
 import fr.nicolas.wispy.game.render.Camera;
 import fr.nicolas.wispy.game.render.Vector2D;
 import fr.nicolas.wispy.game.utils.Assets;
@@ -184,6 +185,9 @@ public class WorldManager {
 				JSONObject itemStackData = new JSONObject();
 				itemStackData.put("id", itemStack.getItem().getId());
 				itemStackData.put("amount", itemStack.getAmount());
+				if (itemStack.getItem().getMaxDurability() > 0) {
+					itemStackData.put("durability", itemStack.getItem().getDurability());
+				}
 				inventory.put("" + i, itemStackData);
 			}
 		}
@@ -210,7 +214,13 @@ public class WorldManager {
 						JSONObject itemStackData = inventory.getJSONObject("" + i);
 						int id = itemStackData.getInt("id");
 						int amount = itemStackData.getInt("amount");
+
 						ItemStack itemStack = new ItemStack(this.itemRegistry.getItem(id), amount);
+
+						if (itemStackData.has("durability")) {
+							itemStack.getItem().setDurability(itemStackData.getInt("durability"));
+						}
+
 						this.game.getPlayer().getInventory().setItem(i, itemStack);
 					}
 				}
@@ -604,12 +614,24 @@ public class WorldManager {
 		g.setStroke(new BasicStroke(3.0F / blockSize));
 		g.drawRect(blockX, blockY, 1, 1);
 
-		if (game.getBlockBreakStartTime() > 0) {
-			int destroyStage = (int) Math.floor((System.currentTimeMillis() - game.getBlockBreakStartTime()) / 500.0 * 10);
+		Block selectedBlock = game.getSelectedBlock();
+		if (game.getBlockBreakStartTime() > 0 && selectedBlock != null) {
+			ItemStack itemStack = game.getSelectedItem();
+
+			int durabilityFactor = 7;
+			if (itemStack != null && itemStack.getItem() instanceof ToolItem && selectedBlock.getTools() == ((ToolItem) itemStack.getItem()).getToolType()) {
+				durabilityFactor = 5 - ((ToolItem) itemStack.getItem()).getMaterial().getEfficiency();
+			}
+
+			int destroyStage = (int) Math.floor((System.currentTimeMillis() - game.getBlockBreakStartTime()) / (double) (selectedBlock.getDurability() * durabilityFactor) * 6);
 			if (destroyStage >= destroyStageTextures.length) {
-				game.getSelectedBlock().onBreak(this, blockX, blockY);
+				selectedBlock.onBreak(this, blockX, blockY);
 				game.setSelectedBlock(null, 0, 0);
 				setBlock(blockX, blockY, Blocks.AIR.getBlock());
+
+				if (itemStack != null) {
+					itemStack.getItem().onBreak(this, itemStack, selectedBlock, blockX, blockY);
+				}
 			} else {
 				g.drawImage(destroyStageTextures[destroyStage], blockX, blockY, 1, 1, null);
 			}

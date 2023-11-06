@@ -43,6 +43,10 @@ public class IngameUI {
         int key = e.getKeyCode();
 
         if (key >= KeyEvent.VK_1 && key <= KeyEvent.VK_9) {
+            if (key - KeyEvent.VK_1 != this.selectedSlot && Game.getInstance().getBlockBreakStartTime() != -1) {
+                Game.getInstance().setBlockBreakStartTime(System.currentTimeMillis());
+            }
+
             this.selectedSlot = key - KeyEvent.VK_1;
             return true;
         }
@@ -56,6 +60,10 @@ public class IngameUI {
 
         for (int i = 0; i < 9; i++) {
             if (e.getX() >= x + i * (size + 5) - 2 && e.getX() <= x + i * (size + 5) + size + 2 && e.getY() >= y && e.getY() <= y + size) {
+                if (i != this.selectedSlot && Game.getInstance().getBlockBreakStartTime() != -1) {
+                    Game.getInstance().setBlockBreakStartTime(System.currentTimeMillis());
+                }
+
                 this.selectedSlot = i;
                 return true;
             }
@@ -65,10 +73,17 @@ public class IngameUI {
 
     public void mouseWheelMoved(MouseWheelEvent e) {
         this.selectedSlot += e.getWheelRotation();
+
         if (this.selectedSlot < 0) {
             this.selectedSlot = 8;
         } else if (this.selectedSlot > 8) {
             this.selectedSlot = 0;
+        } else {
+            return;
+        }
+
+        if (Game.getInstance().getBlockBreakStartTime() != -1) {
+            Game.getInstance().setBlockBreakStartTime(System.currentTimeMillis());
         }
     }
 

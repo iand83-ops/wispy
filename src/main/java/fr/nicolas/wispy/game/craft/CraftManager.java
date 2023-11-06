@@ -33,12 +33,13 @@ public class CraftManager {
         crafts.clear();
     }
 
-    public void registerRecipe(Recipe recipe, Definition... definitions) {
-        registerRecipe(1, recipe, definitions);
+    public CraftManager registerRecipe(Recipe recipe, Definition... definitions) {
+        return registerRecipe(1, recipe, definitions);
     }
 
-    public void registerRecipe(int amount, Recipe recipe, Definition... definitions) {
+    public CraftManager registerRecipe(int amount, Recipe recipe, Definition... definitions) {
         crafts.add(new Craft(new ItemStack(currentItem, amount), recipe, definitions));
+        return this;
     }
 
     public void setCurrentItem(Item currentItem) {

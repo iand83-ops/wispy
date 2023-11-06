@@ -6,6 +6,7 @@ import fr.nicolas.wispy.game.blocks.registry.Materials;
 import fr.nicolas.wispy.game.entities.EntityItem;
 import fr.nicolas.wispy.game.items.Item;
 import fr.nicolas.wispy.game.items.registry.Items;
+import fr.nicolas.wispy.game.items.registry.Tools;
 import fr.nicolas.wispy.game.utils.Assets;
 import fr.nicolas.wispy.game.world.WorldManager;
 
@@ -19,50 +20,68 @@ import java.util.Random;
 
 public class Block {
 
-	private final Blocks type;
+	private Blocks type = Blocks.AIR;
 	private Blocks decorationType = Blocks.AIR;
 	private Blocks originalType = Blocks.AIR;
-	private final Materials material;
-	private final Items itemType;
+	private Materials material = Materials.SOLID;
+	private Items itemType;
 	private Blocks blocksItemType;
+	private Tools tools;
+
+	private int durability = 100;
 
 	private final double width;
 	private final double height;
 
-	private final BufferedImage texture;
+	private BufferedImage texture;
 
 	private boolean backgroundBlock = false;
 
 	private final long tickPlaced;
 
-	public Block(Blocks type, Items itemType) {
-		this(type, Materials.SOLID, itemType, 1, 1);
+	public Block() {
+		this(1, 1);
 	}
 
-	public Block(Blocks type, Blocks blockItemType) {
-		this(type, Materials.SOLID, Items.BLOCK, 1, 1);
-		this.blocksItemType = blockItemType;
-	}
-
-	public Block(Blocks type, Materials material, Items itemType) {
-		this(type, material, itemType, 1, 1);
-	}
-
-	public Block(Blocks type, Materials material, Blocks blockItemType) {
-		this(type, material, Items.BLOCK, 1, 1);
-		this.blocksItemType = blockItemType;
-	}
-
-	public Block(Blocks type, Materials material, Items itemType, double width, double height) {
-		this.type = type;
-		this.material = material;
-		this.itemType = itemType;
+	public Block(double width, double height) {
 		this.width = width;
 		this.height = height;
 
-		this.texture = type == Blocks.AIR ? null : Assets.get("blocks/" + type.name().toLowerCase());
-
 		this.tickPlaced = Game.getInstance().getGameTick();
+	}
+
+	public Block type(Blocks type) {
+		this.type = type;
+		this.texture = type == Blocks.AIR ? null : Assets.get("blocks/" + type.name().toLowerCase());
+		return this;
+	}
+
+	public Block material(Materials material) {
+		this.material = material;
+		return this;
+	}
+
+	public Block itemType(Items itemType) {
+		this.itemType = itemType;
+		return this;
+	}
+
+	public Block blocksItemType(Blocks blocksItemType) {
+		this.blocksItemType = blocksItemType;
+		if (blocksItemType != null) {
+			this.itemType = Items.BLOCK;
+		}
+		return this;
+	}
+
+	public Block tools(Tools tools) {
+		this.tools = tools;
+		return this;
+	}
+
+	public Block durability(int durability) {
+		this.durability = durability;
+		return this;
 	}
 
 	public void tick(WorldManager worldManager, int x, int y, long gameTick) {
@@ -222,16 +241,30 @@ public class Block {
 		this.blocksItemType = blocksItemType;
 	}
 
+	public Tools getTools() {
+		return this.tools;
+	}
+
+	public int getDurability() {
+		return this.durability;
+	}
+
 	public Block copyClass() {
-		return new Block(this.type, this.material, this.itemType, this.width, this.height);
+		return new Block(this.width, this.height);
 	}
 
 	public Block copy() {
-		Block clone = copyClass();
+		Block clone = copyClass()
+				.type(this.type)
+				.material(this.material)
+				.itemType(this.itemType)
+				.blocksItemType(this.blocksItemType)
+				.tools(this.tools)
+				.durability(this.durability);
+
 		clone.setBackgroundBlock(this.backgroundBlock);
 		clone.setDecorationType(this.decorationType);
 		clone.setOriginalType(this.originalType);
-		clone.setBlocksItemType(this.blocksItemType);
 		return clone;
 	}
 

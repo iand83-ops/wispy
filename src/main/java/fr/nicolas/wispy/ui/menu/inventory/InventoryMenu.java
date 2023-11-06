@@ -220,8 +220,12 @@ public abstract class InventoryMenu extends Menu {
 							offsetX = (int) (point.x - slot.getMin().x);
 							offsetY = (int) (point.y - slot.getMin().y);
 						} else if (this.itemStack.getItem().canStack() && this.itemStack.getItem().getId() == itemStack.getItem().getId()) { // Place 1 Item
+							draggingSlots.add(i);
+							draggingInitialAmount.add(itemStack.getAmount());
+
 							itemStack.setAmount(itemStack.getAmount() + 1);
 							this.itemStack.setAmount(this.itemStack.getAmount() - 1);
+							draggingButton = e.getButton();
 						}
 					}
 				} else if (this.itemStack != null && !isImmutable) {
@@ -302,7 +306,7 @@ public abstract class InventoryMenu extends Menu {
 					}
 				} else if (draggingButton == MouseEvent.BUTTON3) { // Right Click
 					if (draggingSlots.get(draggingSlots.size() - 1) != i) {
-						if (this.itemStack != null) { // Place 1 Item
+						if (this.itemStack != null && this.itemStack.getAmount() > 0) { // Place 1 Item
 							ItemStack itemStack = getItemStack(i);
 							if (itemStack == null || (itemStack.getItem().canStack() && this.itemStack.getItem().getId() == itemStack.getItem().getId())) {
 								if (itemStack != null) {

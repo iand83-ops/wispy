@@ -1,17 +1,12 @@
 package fr.nicolas.wispy.game.blocks.types;
 
 import fr.nicolas.wispy.game.blocks.Block;
-import fr.nicolas.wispy.game.blocks.registry.Blocks;
-import fr.nicolas.wispy.game.items.registry.Items;
+import fr.nicolas.wispy.game.items.registry.Tools;
 
 public class OreBlock extends Block {
 
-	public OreBlock(Blocks type, Items itemType) {
-		super(type, itemType);
-	}
-
-	public OreBlock(Blocks type, Blocks blockItemType) {
-		super(type, blockItemType);
+	public OreBlock() {
+		tools(Tools.PICKAXE);
 	}
 
 	@Override
@@ -21,6 +16,6 @@ public class OreBlock extends Block {
 
 	@Override
 	public Block copyClass() {
-		return new OreBlock(this.getType(), this.getItemType());
+		return new OreBlock();
 	}
 }

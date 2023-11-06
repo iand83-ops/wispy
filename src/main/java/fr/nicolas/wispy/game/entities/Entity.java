@@ -287,8 +287,8 @@ public abstract class Entity implements Rendering {
         AABB playerDownAABB = new AABB(new Vector2D(playerChunkX + offset, playerChunkY), new Vector2D(playerChunkX + width - offset, playerChunkY));
         Vector2D playerCenterPoint = new Vector2D(playerChunkX + width / 2.0, playerChunkY - height / 2.0);
 
-        for (int x = (int) -Math.floor(width); x <= Math.ceil(width); x++) {
-            for (int y = (int) -Math.floor(height); y <= Math.ceil(height); y++) {
+        for (int x = (int) -Math.ceil(width); x <= Math.ceil(width); x++) {
+            for (int y = (int) -Math.ceil(height); y <= Math.ceil(height); y++) {
                 int blockX = (int) Math.floor(playerChunkX + x);
                 int blockY = (int) Math.floor(playerChunkY + y);
 

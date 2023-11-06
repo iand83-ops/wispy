@@ -34,6 +34,21 @@ public class ItemStack {
         int offset = size / 4;
         item.render(graphics, x + offset / 2, y + offset / 2, size - offset);
 
+        if (item.getMaxDurability() > 0 && item.getDurability() < item.getMaxDurability()) {
+            graphics.setColor(Color.BLACK);
+            graphics.fillRect(x + offset / 2, y + size - offset / 2 - 4, size - offset, 4);
+
+            if (item.getDurability() < item.getMaxDurability() / 3) {
+                graphics.setColor(Color.RED);
+            } else if (item.getDurability() < item.getMaxDurability() / 2) {
+                graphics.setColor(Color.ORANGE);
+            } else {
+                graphics.setColor(Color.GREEN);
+            }
+
+            graphics.fillRect(x + offset / 2, y + size - offset / 2 - 4, (int) ((size - offset) * ((double) item.getDurability() / item.getMaxDurability())), 4);
+        }
+
         graphics.setFont(new Font("Arial", Font.BOLD, 20));
         graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
