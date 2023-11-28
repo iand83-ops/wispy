@@ -89,22 +89,29 @@ public class Block {
 	}
 
 	public void onBreak(WorldManager worldManager, int x, int y) {
-		if (this.itemType == null) {
-			return;
+		if (this.itemType != null) {
+			Item item = this.itemType.getItem();
+
+			if (this.blocksItemType != null) {
+				item = worldManager.getItemRegistry().getItem(this.blocksItemType.getId());
+			}
+
+			EntityItem entityItem = new EntityItem(worldManager, item.copy());
+			entityItem.setPos(x + 0.25 + (new Random().nextDouble() - 0.5) / 2, y + 0.75);
+			worldManager.addEntity(entityItem);
 		}
 
-		Item item = this.itemType.getItem();
-
-		if (this.blocksItemType != null) {
-			item = worldManager.getItemRegistry().getItem(this.blocksItemType.getId());
-		}
-
-		EntityItem entityItem = new EntityItem(worldManager, item.copy());
-		entityItem.setPos(x + 0.25 + (new Random().nextDouble() - 0.5) / 2, y + 0.75);
-		worldManager.addEntity(entityItem);
+		worldManager.getBlock(x - 1, y).onNeighborBreak(worldManager, this, x - 1, y, x, y);
+		worldManager.getBlock(x + 1, y).onNeighborBreak(worldManager, this, x + 1, y, x, y);
+		worldManager.getBlock(x, y - 1).onNeighborBreak(worldManager, this, x, y - 1, x, y);
+		worldManager.getBlock(x, y + 1).onNeighborBreak(worldManager, this, x, y + 1, x, y);
 	}
 
 	public void onRightClick(WorldManager worldManager, int x, int y) {
+
+	}
+
+	public void onNeighborBreak(WorldManager worldManager, Block block, int x, int y, int neighborX, int neighborY) {
 
 	}
 

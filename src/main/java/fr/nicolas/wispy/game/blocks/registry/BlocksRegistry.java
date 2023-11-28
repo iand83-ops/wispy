@@ -28,7 +28,7 @@ public class BlocksRegistry {
         register(5, new WaterBlock(), "Water");
 
         register(6, new BreakableBackgroundBlock().type(Blocks.OAK_LOG).blocksItemType(Blocks.OAK_LOG).tools(Tools.AXE), "Oak log");
-        register(7, new BreakableBackgroundBlock().type(Blocks.OAK_LEAVES).blocksItemType(Blocks.OAK_LEAVES), "Oak leaves");
+        register(7, new BreakableBackgroundBlock().type(Blocks.OAK_LEAVES).durability(30), "Oak leaves");
 
         register(8, new OreBlock().type(Blocks.IRON_ORE).blocksItemType(Blocks.IRON_ORE), "Iron ore");
         register(9, new OreBlock().type(Blocks.COAL_ORE).itemType(Items.COAL), "Coal ore");
@@ -37,9 +37,9 @@ public class BlocksRegistry {
 
         register(12, new Block().type(Blocks.BEDROCK).material(Materials.SOLID).blocksItemType(Blocks.BEDROCK).durability(Integer.MAX_VALUE), "Bedrock");
 
-        register(13, new ReplaceableBlock().type(Blocks.TALL_GRASS), "Tall grass");
-        register(14, new ReplaceableBlock().type(Blocks.CAVE_VINES), "Cave vines");
-        register(15, new ReplaceableBlock().type(Blocks.CAVE_VINES_PLANT), "Cave vines plant");
+        register(13, new BoundBottomBlock().type(Blocks.TALL_GRASS).material(Materials.NON_SOLID_TRANSPARENT).durability(15), "Tall grass");
+        register(14, new BoundTopBlock().type(Blocks.CAVE_VINES).material(Materials.NON_SOLID_TRANSPARENT).durability(15), "Cave vines");
+        register(15, new BoundTopBlock().type(Blocks.CAVE_VINES_PLANT).material(Materials.NON_SOLID_TRANSPARENT).durability(15), "Cave vines plant");
 
         register(16, new CraftingTableBlock(), "Crafting table")
                 .registerRecipe(new Recipe("AA", "AA"), new Definition('A', Blocks.OAK_PLANKS));
