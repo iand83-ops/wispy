@@ -521,7 +521,7 @@ public class WorldManager {
 					darknessOpacity = Math.min(darknessOpacity, distanceFactor * distanceFactor);
 				}
 
-				if (block.isBackgroundBlock() && !block.isTransparent()) {
+				if ((block.isBackgroundBlock() && !block.isTransparent()) || block.renderDarker()) {
 					darknessOpacity += 0.3F;
 				}
 

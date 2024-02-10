@@ -1,11 +1,15 @@
 package fr.nicolas.wispy.game.items.registry;
 
+import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.registry.Blocks;
 import fr.nicolas.wispy.game.craft.CraftManager;
 import fr.nicolas.wispy.game.craft.Definition;
 import fr.nicolas.wispy.game.craft.Recipe;
 import fr.nicolas.wispy.game.items.Item;
+import fr.nicolas.wispy.game.items.ItemStructure;
 import fr.nicolas.wispy.game.items.types.ToolItem;
+import fr.nicolas.wispy.game.structure.StructureDefinition;
+import fr.nicolas.wispy.game.structure.StructureShape;
 
 public class ItemsRegistry {
 
@@ -82,6 +86,10 @@ public class ItemsRegistry {
                 .registerRecipe(new Recipe("AA", " B", " B"), new Definition('A', Items.DIAMOND), new Definition('B', Items.STICK));
         register(130, new ToolItem(Items.DIAMOND_SWORD, "Diamond sword", Tools.SWORD, ToolsMaterial.DIAMOND))
                 .registerRecipe(new Recipe("A", "A", "B"), new Definition('A', Items.DIAMOND), new Definition('B', Items.STICK));
+
+        register(131, new ItemStructure(Items.DOOR, "Door",
+                new StructureShape("A", "B"), new StructureDefinition('A', Blocks.DOOR_TOP), new StructureDefinition('B', Blocks.DOOR_BOTTOM)))
+                .registerRecipe(3, new Recipe("AA", "AA", "AA"), new Definition('A', Blocks.OAK_PLANKS));
     }
 
     public CraftManager register(int id, Item item) {

@@ -89,7 +89,7 @@ public class Block {
 	}
 
 	public void onBreak(WorldManager worldManager, int x, int y) {
-		if (this.itemType != null) {
+		if (this.getItemType() != null) {
 			Item item = this.itemType.getItem();
 
 			if (this.blocksItemType != null) {
@@ -111,7 +111,7 @@ public class Block {
 
 	}
 
-	public void onNeighborBreak(WorldManager worldManager, Block block, int x, int y, int neighborX, int neighborY) {
+	public void onNeighborBreak(WorldManager worldManager, Block neighbor, int x, int y, int neighborX, int neighborY) {
 
 	}
 
@@ -169,19 +169,19 @@ public class Block {
 	}
 
 	public boolean isSolid() {
-		return this.material == Materials.SOLID || this.material == Materials.SOLID_GRAVITY;
+		return this.getMaterial() == Materials.SOLID || this.getMaterial() == Materials.SOLID_GRAVITY;
 	}
 
 	public boolean isSolidOrLiquid() {
-		return this.material != Materials.NON_SOLID && this.material != Materials.NON_SOLID_TRANSPARENT;
+		return this.getMaterial() != Materials.NON_SOLID && this.getMaterial() != Materials.NON_SOLID_TRANSPARENT;
 	}
 
 	public boolean isTransparent() {
-		return type == Blocks.AIR || this.material == Materials.NON_SOLID_TRANSPARENT || this.material == Materials.TRANSPARENT;
+		return type == Blocks.AIR || this.getMaterial() == Materials.NON_SOLID_TRANSPARENT || this.getMaterial() == Materials.TRANSPARENT;
 	}
 
 	public boolean isLiquid() {
-		return this.material == Materials.LIQUID;
+		return this.getMaterial() == Materials.LIQUID;
 	}
 
 	public int getId() {
@@ -194,6 +194,10 @@ public class Block {
 
 	public boolean isBackgroundBlock() {
 		return this.backgroundBlock;
+	}
+
+	public boolean renderDarker() {
+		return false;
 	}
 
 	public boolean renderAsSolidColor() {

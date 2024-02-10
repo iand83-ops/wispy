@@ -7,7 +7,7 @@ import fr.nicolas.wispy.game.world.WorldManager;
 public class BoundBottomBlock extends Block {
 
 	@Override
-	public void onNeighborBreak(WorldManager worldManager, Block block, int x, int y, int neighborX, int neighborY) {
+	public void onNeighborBreak(WorldManager worldManager, Block neighbor, int x, int y, int neighborX, int neighborY) {
 		if (x == neighborX && y + 1 == neighborY) {
 			onBreak(worldManager, x, y);
 			worldManager.setBlock(x, y, Blocks.AIR.getBlock());

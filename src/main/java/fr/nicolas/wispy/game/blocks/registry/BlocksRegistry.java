@@ -2,6 +2,8 @@ package fr.nicolas.wispy.game.blocks.registry;
 
 import fr.nicolas.wispy.game.blocks.Block;
 import fr.nicolas.wispy.game.blocks.types.*;
+import fr.nicolas.wispy.game.blocks.types.impl.DoorBottomBlock;
+import fr.nicolas.wispy.game.blocks.types.impl.DoorTopBlock;
 import fr.nicolas.wispy.game.craft.CraftManager;
 import fr.nicolas.wispy.game.craft.Definition;
 import fr.nicolas.wispy.game.craft.Recipe;
@@ -48,6 +50,9 @@ public class BlocksRegistry {
                 .registerRecipe(4, new Recipe("A"), new Definition('A', Blocks.OAK_LOG));
 
         register(18, new Block().type(Blocks.COBBLESTONE).blocksItemType(Blocks.COBBLESTONE).tools(Tools.PICKAXE), "Cobblestone");
+
+        register(19, new DoorBottomBlock(), "Door bottom");
+        register(20, new DoorTopBlock(), "Door top");
     }
 
     public CraftManager register(int id, Block block, String name) {

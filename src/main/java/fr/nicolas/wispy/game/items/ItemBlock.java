@@ -61,13 +61,6 @@ public class ItemBlock extends Item {
     }
 
     @Override
-    public Item copy() {
-        ItemBlock item = (ItemBlock) super.copy();
-        item.blockType = this.blockType;
-        return item;
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

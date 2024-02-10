@@ -34,7 +34,8 @@ public enum Items {
     STONE_SWORD,
     IRON_SWORD,
     GOLD_SWORD,
-    DIAMOND_SWORD;
+    DIAMOND_SWORD,
+    DOOR;
 
     private int id = 0;
     private Item item;

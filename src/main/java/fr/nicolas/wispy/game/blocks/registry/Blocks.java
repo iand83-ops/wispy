@@ -22,7 +22,9 @@ public enum Blocks {
     CAVE_VINES_PLANT,
     CRAFTING_TABLE,
     OAK_PLANKS,
-    COBBLESTONE;
+    COBBLESTONE,
+    DOOR_BOTTOM,
+    DOOR_TOP;
 
     private int id = 0;
     private Block block;
